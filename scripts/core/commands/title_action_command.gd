@@ -31,11 +31,12 @@ func can_apply(state: GameState, rules: Rules) -> String:
 	var a: Dictionary = find(p, rules)[1]
 	if a.is_empty():
 		return "You don't hold a title with that ability."
-	err = rules.check_dice(p, dice, int(a["min"]), bool(a.get("single_die", false)), null)
+	var terms := rules.action_terms(p, a, null)
+	err = rules.check_dice(p, dice, terms["min"], bool(a.get("single_die", false)), null)
 	if err != "":
 		return err
-	if p.resources < int(a.get("cost", 0)):
-		return "Needs %d resources." % int(a["cost"])
+	if p.resources < terms["cost"]:
+		return "Needs %d resources." % terms["cost"]
 	return rules.effects[a["effect"]]["check"].call(state, p, p.pos, a, params)
 
 

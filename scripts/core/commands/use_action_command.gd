@@ -23,20 +23,6 @@ func action(state: GameState, rules: Rules) -> Dictionary:
 	return rules.data.find_action(t.id, t.revealed, t.flipped, action_id)
 
 
-func min_value(p: PlayerState, a: Dictionary, rules: Rules) -> int:
-	if p.has_title("master_smith"):
-		var o := rules.data.title_ability_by_effect("master_smith", "action_min_override")
-		if o["action"] == a["id"]:
-			return int(o["value"])
-	return int(a["min"])
-
-
-func cost(p: PlayerState, a: Dictionary, rules: Rules) -> int:
-	if a["effect"] == "flip_tile_and_spawn_d4_enemies":
-		return rules.expedition_cost(p, a)
-	return int(a.get("cost", 0))
-
-
 func can_apply(state: GameState, rules: Rules) -> String:
 	var err := rules.check_can_act(state, player)
 	if err != "":
@@ -52,11 +38,12 @@ func can_apply(state: GameState, rules: Rules) -> String:
 	var a := action(state, rules)
 	if a.is_empty():
 		return "That action isn't on this tile."
-	err = rules.check_dice(p, dice, min_value(p, a, rules), bool(a.get("single_die", false)), t)
+	var terms := rules.action_terms(p, a, t)
+	err = rules.check_dice(p, dice, terms["min"], bool(a.get("single_die", false)), t)
 	if err != "":
 		return err
-	if p.resources < cost(p, a, rules):
-		return "Needs %d resources." % cost(p, a, rules)
+	if p.resources < terms["cost"]:
+		return "Needs %d resources." % terms["cost"]
 	return rules.effects[a["effect"]]["check"].call(state, p, tile_pos, a, params)
 
 
@@ -65,7 +52,7 @@ func apply(state: GameState, rules: Rules) -> Array:
 	var p := state.players[player]
 	var a := action(state, rules)
 	rules.spend_dice(p, dice)
-	rules.pay(state, p, cost(p, a, rules))
+	rules.pay(state, p, rules.action_terms(p, a, state.tile_at(tile_pos))["cost"])
 	ev.append(Rules.event("action_used", {"player": player, "action": action_id, "pos": tile_pos}))
 	rules.effects[a["effect"]]["apply"].call(state, p, tile_pos, a, params, ev)
 	return ev

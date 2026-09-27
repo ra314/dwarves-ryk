@@ -82,6 +82,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 ### Where things are
 
 - `rules.gd` holds the effect handlers (`effects` maps effect id → check/apply), combat, wounds, surges and the Enemy Phase. Commands in `commands/` validate the player-side parts and call into it.
+- `Rules.action_terms(player, action, tile)` gives an action's real minimum and cost for a player after titles (Messenger, Master Smith, …), with notes. Commands validate against it and every UI text (menus, hovers) is built from it; don't show a printed `min`/`cost` straight from the data. `Rules.movement_parts` does the same for movement.
 - `engine.gd` runs the Enemy Phase when the last player is done. Any command during which `Rules.revealed` gets set is stored as a checkpoint in `undo_history.gd`.
 - `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
 - UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.

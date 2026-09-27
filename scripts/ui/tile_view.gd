@@ -21,6 +21,8 @@ var pos: Vector2i
 var tile: TileState
 var nobles: Array = []   # colours of Nobles here
 var label: String = ""
+## Extra hover text: passives and actions with the acting player's numbers.
+var details: String = ""
 var texture: Texture2D
 var enemy_icon: Texture2D
 var warrior_icon: Texture2D
@@ -51,23 +53,13 @@ func _describe() -> String:
 		parts.append("%d warrior%s" % [tile.warriors, "" if tile.warriors == 1 else "s"])
 	if not nobles.is_empty():
 		parts.append("Nobles: " + ", ".join(nobles))
-	return " · ".join(parts)
+	var text := " · ".join(parts)
+	return text if details == "" else text + "\n" + details
 
 
 ## Hover: the tile's art at a readable size, with what's on it underneath.
 func _make_custom_tooltip(for_text: String) -> Object:
-	var box := VBoxContainer.new()
-	if texture != null:
-		var big := TextureRect.new()
-		big.texture = texture
-		big.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		big.custom_minimum_size = Vector2(420, 420)
-		box.add_child(big)
-	var l := Label.new()
-	l.text = for_text
-	box.add_child(l)
-	return box
+	return HoverCard.build(texture, Vector2(420, 420), for_text)
 
 
 func pulse() -> void:

@@ -315,3 +315,15 @@ func test_architect_swaps_tiles_tokens_stay() -> void:
 func test_architect_needs_adjacent_tiles() -> void:
 	s.players[0].titles.append("master_smith")
 	refuse(TitleActionCommand.new(0, "architect", dice(0, [6]), {"a": BARRACKS, "b": FAR}), "next to each other")
+
+
+func test_action_terms_match_what_commands_enforce() -> void:
+	var p := s.players[0]
+	var expedition: Dictionary = engine.data.ruins_back()["actions"][0]
+	assert_eq(engine.rules.action_terms(p, expedition, null)["cost"], 2)
+	p.titles.append("messenger")
+	assert_eq(engine.rules.action_terms(p, expedition, null)["cost"], 0)
+	var promote := engine.data.find_action("blacksmith", true, false, "promote_worker")
+	assert_eq(engine.rules.action_terms(p, promote, null)["min"], 5)
+	p.titles.append("master_smith")
+	assert_eq(engine.rules.action_terms(p, promote, null)["min"], 1)

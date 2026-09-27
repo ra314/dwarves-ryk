@@ -259,6 +259,7 @@ func _refresh() -> void:
 	for tv in tile_views:
 		var t := s.tile_at(tv.pos)
 		var nobles := s.nobles_at(tv.pos).map(func(p): return p.colour)
+		tv.details = _tile_details(t, tv.pos)
 		tv.show_state(t, _tile_name(t), _texture_for(t), nobles)
 		var me := s.players[acting]
 		tv.highlight = TileView.NOBLE_COLOURS[me.colour] if me.on_board and me.pos == tv.pos else Color(0, 0, 0, 0)
@@ -293,6 +294,27 @@ func _refresh() -> void:
 	else:
 		undo_button.text = "Undo" if engine.undo_label() == "" else "Undo (locked after a reveal)"
 	_refresh_players()
+
+
+## Hover text for a tile: its passives as they stand now, and each action with the
+## acting player's real numbers.
+func _tile_details(t: TileState, pos: Vector2i) -> String:
+	var lines := []
+	var p := engine.state.players[acting]
+	if t.revealed:
+		var info := engine.data.tile(t.id)
+		var passives: Array = info.get("back_side", {}).get("passives", []) if t.flipped else info["passives"]
+		for ps in passives:
+			var off: bool = t.is_blocked() and ps["id"] != "garrison"  # R10, R21
+			lines.append("%s: %s%s" % [ps["name"], ps["text"], "  (off while blocked)" if off else ""])
+	if t.is_blocked():
+		lines.append("Blocked by enemies: no actions here.")
+	var actions := engine.data.actions_for(t.id, t.revealed, t.flipped)
+	if not actions.is_empty():
+		lines.append("For %s:" % p.colour)
+		for a in actions:
+			lines.append("  " + _action_text(p, a, t))
+	return "\n".join(lines)
 
 
 func _tile_name(t: TileState) -> String:
@@ -363,8 +385,7 @@ func _refresh_players() -> void:
 		head.add_child(stats)
 		_fill_player_stats(stats, p)
 		for t in p.titles:
-			var thumb := CardThumb.make(_cached_texture(engine.data.title(t)["image"]), 34,
-				"%s: %s" % [p.colour, engine.data.title(t)["name"]])
+			var thumb := CardThumb.make(_cached_texture(engine.data.title(t)["image"]), 34, _title_tip(t))
 			head.add_child(thumb)
 		var done := Button.new()
 		done.text = "Done" if not p.done else "✓ done"
@@ -384,6 +405,9 @@ func _refresh_players() -> void:
 				p.index == acting and selected.has(int(die["id"])),
 				TileView.NOBLE_COLOURS[p.colour], hash([p.index, die["id"], s.round]))
 			dv.picked.connect(_toggle_die.bind(p.index, int(die["id"])))
+			if p.has_title("master_miner"):
+				var bonus := engine.data.title_ability_by_effect("master_miner", "die_bonus_at_tile")
+				dv.tooltip_text += "; counts as %d at a Mine (Master Miner)" % (int(die["value"]) + int(bonus["value"]))
 			tray.add_child(dv)
 			if new_roll:
 				dv.roll_in(0.05 * i + 0.1 * p.index)
@@ -400,8 +424,11 @@ func _fill_player_stats(stats: HFlowContainer, p: PlayerState) -> void:
 	stats.add_child(StatChip.make("resource", str(p.resources), "Resources"))
 	if p.on_board:
 		var allowance := engine.rules.movement_allowance(p)
-		stats.add_child(StatChip.make("moves", "%d/%d" % [allowance - p.moves_used, allowance],
-			"Moves left this round / allowance"))
+		var parts := engine.rules.movement_parts(p).map(func(x): return "%d %s" % [x[1], x[0]])
+		var tip := "Moves left: %d of %d this round (%s)" % [allowance - p.moves_used, allowance, " + ".join(parts)]
+		if engine.rules.is_lost(engine.state, p):
+			tip += ". Lost in the Empty Halls: use Discover the Path to leave"
+		stats.add_child(StatChip.make("moves", "%d/%d" % [allowance - p.moves_used, allowance], tip))
 	var reserve := HBoxContainer.new()
 	reserve.add_theme_constant_override("separation", 6)
 	reserve.tooltip_text = "Reserve: dice not in your active pool yet"
@@ -422,6 +449,34 @@ func _mini_die(type: String, colour: Color, seed_key: int) -> DiceView:
 	return dv
 
 
+## Hover text for a title card, from the acting player's point of view.
+func _title_tip(id: String) -> String:
+	var s := engine.state
+	var info := engine.data.title(id)
+	var me := s.players[acting]
+	var holder := s.title_holder(id)
+	var lines := [info["name"]]
+	var claim := {}
+	for a in engine.data.tile(info["claimed_at"])["actions"]:
+		if a["effect"] == "gain_title" and a["title"] == id:
+			claim = a
+	var where := "Claimed at the %s (%d+)" % [engine.data.tile(info["claimed_at"])["name"],
+		engine.rules.action_terms(me, claim, null)["min"]]
+	if holder == acting:
+		lines.append("Held by you (%s)." % me.colour)
+	elif holder >= 0:
+		lines.append("Held by %s. %s. %s must agree to hand it over." % [s.players[holder].colour, where, s.players[holder].colour])
+	else:
+		lines.append(where + ".")
+	if holder != acting and me.titles.size() >= engine.data.titles_per_player(s.num_players):
+		lines.append("Taking it returns your %s." % " or ".join(me.titles.map(func(t): return engine.data.title(t)["name"])))
+	var holder_p: PlayerState = me if holder < 0 else s.players[holder]
+	for ab in info["abilities"]:
+		if ab["type"] == "action":
+			lines.append("  " + _action_text(holder_p, ab.merged({"name": String(ab["id"]).capitalize()}), null))
+	return "\n".join(lines)
+
+
 ## The six title cards: unclaimed ones bright, held ones dimmed with the holder's colour.
 func _refresh_titles() -> void:
 	for c in titles_grid.get_children():
@@ -430,10 +485,7 @@ func _refresh_titles() -> void:
 	for id in engine.data.title_ids():
 		var info := engine.data.title(id)
 		var holder := s.title_holder(id)
-		var tip: String = "%s (claimed at the %s)" % [info["name"], engine.data.tile(info["claimed_at"])["name"]]
-		if holder >= 0:
-			tip += ". Held by %s" % s.players[holder].colour
-		var thumb := CardThumb.make(_cached_texture(info["image"]), 90, tip)
+		var thumb := CardThumb.make(_cached_texture(info["image"]), 90, _title_tip(id))
 		if holder >= 0:
 			thumb.modulate = Color(1, 1, 1, 0.55)
 			thumb.border = TileView.NOBLE_COLOURS[s.players[holder].colour]
@@ -503,11 +555,19 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 	menu.popup(Rect2i(Vector2i(get_global_mouse_position()), Vector2i.ZERO))
 
 
-func _action_text(a: Dictionary) -> String:
-	var t := "%s (%d+" % [a["name"], int(a["min"])]
-	if int(a.get("cost", 0)) > 0:
-		t += ", %d res" % int(a["cost"])
-	return t + ")"
+## "Expedition (3+, free) · Messenger: spawns 1 (6 on an Encampment)": the numbers
+## this player really needs, from Rules.action_terms, with why they differ from the card.
+func _action_text(p: PlayerState, a: Dictionary, tile: TileState) -> String:
+	var terms := engine.rules.action_terms(p, a, tile)
+	var t := "%s (%d+" % [a.get("name", String(a["id"]).capitalize()), terms["min"]]
+	if terms["cost"] > 0:
+		t += ", %d res" % terms["cost"]
+	elif int(a.get("cost", 0)) > 0:
+		t += ", free"
+	t += ")"
+	if not terms["notes"].is_empty():
+		t += " · " + "; ".join(terms["notes"])
+	return t
 
 
 ## Adds a menu entry; disabled with the reason if the command isn't legal.
@@ -533,14 +593,15 @@ func _action_item(pos: Vector2i, a: Dictionary) -> void:
 	var probe := {"holder_agreed": true} if a["effect"] == "gain_title" else {}
 	var cmd := UseActionCommand.new(acting, pos, a["id"], dice, probe)
 	var make := func(params: Dictionary) -> Command: return UseActionCommand.new(acting, pos, a["id"], dice, params)
-	_menu_item(_action_text(a), cmd, func(): _collect_params(a, pos, make))
+	_menu_item(_action_text(engine.state.players[acting], a, engine.state.tile_at(pos)), cmd,
+		func(): _collect_params(a, pos, make))
 
 
 func _title_item(pos: Vector2i, a: Dictionary) -> void:
 	var dice := selected.duplicate()
 	var make := func(params: Dictionary) -> Command: return TitleActionCommand.new(acting, a["id"], dice, params)
 	var params := {"target": pos} if a["effect"] == "remove_enemies" else {}
-	_menu_item(_action_text({"name": a["id"].capitalize(), "min": a["min"]}), make.call(params),
+	_menu_item(_action_text(engine.state.players[acting], a, null), make.call(params),
 		func(): _collect_params(a, pos, make))
 
 

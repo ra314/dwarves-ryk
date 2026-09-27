@@ -83,3 +83,65 @@ func test_choice_popup_runs_chosen_option() -> void:
 	_press("Promote Worker")
 	_press("d6")  # second option in "Promote which die?"
 	assert_eq(main.engine.state.players[0].pending.map(func(d): return d["type"]), ["d8"])
+
+
+func _menu_texts() -> Array:
+	var out := []
+	for i in main.menu.item_count:
+		out.append(main.menu.get_item_text(i))
+	main.menu.hide()
+	return out
+
+
+func test_expedition_text_follows_messenger() -> void:
+	var s: GameState = main.engine.state
+	var ruin := Vector2i(0, 3)
+	s.tile_at(ruin).revealed = false
+	main._refresh()
+	main._on_tile_clicked(ruin)
+	assert_true(_menu_texts().any(func(t): return t.begins_with("Expedition (3+, 2 res) · spawns d4")))
+	assert_string_contains(main.tile_views[3 * 5].tooltip_text, "Expedition (3+, 2 res)")
+	s.players[0].titles.append("messenger")
+	main._refresh()
+	main._on_tile_clicked(ruin)
+	assert_true(_menu_texts().any(func(t): return t.begins_with("Expedition (3+, free) · Messenger: spawns 1")))
+	assert_string_contains(main.tile_views[3 * 5].tooltip_text, "Expedition (3+, free)")
+	# Another player's hover still shows their own numbers.
+	main._set_acting(1)
+	assert_string_contains(main.tile_views[3 * 5].tooltip_text, "Expedition (3+, 2 res)")
+
+
+func test_promote_text_follows_master_smith() -> void:
+	var s: GameState = main.engine.state
+	var smith := Vector2i(0, 3)
+	s.tile_at(smith).id = "blacksmith"
+	s.tile_at(smith).revealed = true
+	s.players[0].titles.append("master_smith")
+	main._refresh()
+	assert_string_contains(main.tile_views[3 * 5].tooltip_text, "Promote Worker (1+, 3 res) · Master Smith")
+
+
+func test_blocked_tile_hover_says_passives_are_off() -> void:
+	var s: GameState = main.engine.state
+	s.tile_at(Vector2i(1, 3)).enemies = 1
+	var tower := Vector2i(0, 3)
+	s.tile_at(tower).id = "watchtower"
+	s.tile_at(tower).revealed = true
+	s.tile_at(tower).enemies = 1
+	main._refresh()
+	assert_string_contains(main.tile_views[3 * 5 + 1].tooltip_text, "Motivated: When you start your turn here you gain +1 movement this turn  (off while blocked)")
+	var tower_tip: String = main.tile_views[3 * 5].tooltip_text
+	assert_string_contains(tower_tip, "Garrison")
+	assert_false(tower_tip.contains("Garrison: Dwarf nobles can't be wounded here  (off"), "Garrison stays on (R21)")
+
+
+func test_title_hover_is_from_acting_players_view() -> void:
+	var s: GameState = main.engine.state
+	s.players[1].titles.append("regent")
+	s.players[0].titles.append("workmaster")
+	main._refresh()
+	var tip: String = main._title_tip("regent")
+	assert_string_contains(tip, "Held by Red")
+	assert_string_contains(tip, "Red must agree")
+	assert_string_contains(tip, "Taking it returns your Workmaster")
+	assert_string_contains(tip, "Bodyguard (7+) · single die")

@@ -20,18 +20,7 @@ static func make(tex: Texture2D, width: float, tip: String) -> CardThumb:
 
 
 func _make_custom_tooltip(for_text: String) -> Object:
-	var box := VBoxContainer.new()
-	if texture != null:
-		var big := TextureRect.new()
-		big.texture = texture
-		big.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		big.custom_minimum_size = BIG
-		box.add_child(big)
-	var l := Label.new()
-	l.text = for_text
-	box.add_child(l)
-	return box
+	return HoverCard.build(texture, BIG, for_text)
 
 
 func _draw() -> void:

@@ -124,12 +124,48 @@ func pay(state: GameState, p: PlayerState, cost: int) -> void:
 
 
 func movement_allowance(p: PlayerState) -> int:
-	var n := data.limit("base_movement")
-	if p.started_on_hearth:
-		n += int(data.tile("hearth")["passives"][0]["value"])
-	if p.has_title("messenger"):
-		n += int(data.title_ability_by_effect("messenger", "movement_bonus")["value"])
+	var n := 0
+	for part in movement_parts(p):
+		n += int(part[1])
 	return n
+
+
+## Where a player's movement comes from, as [label, amount] pairs.
+func movement_parts(p: PlayerState) -> Array:
+	var parts := [["base", data.limit("base_movement")]]
+	if p.started_on_hearth:
+		parts.append(["Hearth", int(data.tile("hearth")["passives"][0]["value"])])
+	if p.has_title("messenger"):
+		parts.append(["Messenger", int(data.title_ability_by_effect("messenger", "movement_bonus")["value"])])
+	return parts
+
+
+## What an action really needs from this player, after their titles:
+## {"min": int, "cost": int, "notes": Array of short explanations}.
+## tile is where the action is used (null for title abilities). Commands validate
+## against these numbers and the UI shows them, so the two can't disagree.
+func action_terms(p: PlayerState, a: Dictionary, tile: TileState) -> Dictionary:
+	var terms := {"min": int(a.get("min", 0)), "cost": int(a.get("cost", 0)), "notes": []}
+	if p.has_title("master_smith"):
+		var o := data.title_ability_by_effect("master_smith", "action_min_override")
+		if o["action"] == a.get("id", ""):
+			terms["min"] = int(o["value"])
+			terms["notes"].append("Master Smith")
+	if a.get("effect", "") == "flip_tile_and_spawn_d4_enemies":
+		var camp := int(data.tile("encampment")["on_flip"]["value"])
+		if p.has_title("messenger"):
+			terms["cost"] = 0
+			var n := int(data.title_ability_by_effect("messenger", "expedition_spawns_fixed")["value"])
+			terms["notes"].append("Messenger: spawns %d (%d on an Encampment)" % [n, camp])
+		else:
+			terms["notes"].append("spawns d4 enemies (%d on an Encampment)" % camp)
+	if tile != null and p.has_title("master_miner"):
+		var bonus := data.title_ability_by_effect("master_miner", "die_bonus_at_tile")
+		if tile.revealed and tile.id == bonus["tile"]:
+			terms["notes"].append("Master Miner: +%d per die" % int(bonus["value"]))
+	if a.get("single_die", false):
+		terms["notes"].append("single die")
+	return terms
 
 
 ## Empty Halls' Lost passive: can't leave unless blocked (R10) or the path was found (R11).
@@ -154,12 +190,6 @@ func _check_expedition(state: GameState, p: PlayerState, origin: Vector2i, _a: D
 	if state.tile_at(origin).revealed:
 		return "That tile has already been explored."
 	return ""
-
-
-func expedition_cost(p: PlayerState, action: Dictionary) -> int:
-	if p.has_title("messenger"):
-		return 0
-	return int(action.get("cost", 0))
 
 
 func _do_expedition(state: GameState, p: PlayerState, origin: Vector2i, _a: Dictionary, _params: Dictionary, ev: Array) -> void:
