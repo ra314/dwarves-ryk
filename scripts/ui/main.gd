@@ -542,24 +542,17 @@ func fly_enemies(moves: Array, seconds: float) -> void:
 	for m in moves:
 		var from: TileView = tile_views[m["from"].y * 5 + m["from"].x]
 		var to: TileView = tile_views[m["to"].y * 5 + m["to"].x]
-		var token := TextureRect.new()
-		token.texture = icon
-		token.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		token.custom_minimum_size = Vector2(46, 46)
-		token.size = Vector2(46, 46)
-		var badge := Label.new()
-		badge.text = str(m["count"])
-		badge.add_theme_color_override("font_color", Color.WHITE)
-		badge.add_theme_color_override("font_outline_color", Color("b02020"))
-		badge.add_theme_constant_override("outline_size", 6)
-		badge.position = Vector2(34, 26)
-		token.add_child(badge)
-		var start := from.get_global_rect().get_center() - token.size / 2
-		var end := to.get_global_rect().get_center() - token.size / 2
-		token.position = start
+		# Drawn by the same function as the board's tokens, and slid from exactly
+		# where the stack was drawn to where it will be drawn: no jumps.
+		var token := Control.new()
+		token.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var count := int(m["count"])
+		token.draw.connect(func(): TileView.draw_token(token, Vector2.ZERO, TileView.ENEMY_COLOUR, "E", count, icon))
+		token.position = fx_layer.get_global_transform().affine_inverse() * from.enemy_anchor()
+		var end := fx_layer.get_global_transform().affine_inverse() * to.enemy_anchor()
 		fx_layer.add_child(token)
 		sprites.append(token)
-		tween.tween_property(token, "position", end, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(token, "position", end, seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
 	for t in sprites:
 		t.queue_free()

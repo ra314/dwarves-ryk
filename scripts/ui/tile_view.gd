@@ -27,6 +27,11 @@ var texture: Texture2D
 var enemy_icon: Texture2D
 var warrior_icon: Texture2D
 var highlight: Color = Color(0, 0, 0, 0)
+
+## Where token stacks sit on a tile (their centres, in tile-local pixels).
+const ENEMY_AT := Vector2(32, 50)
+const WARRIOR_AT := Vector2(86, 50)
+const ENEMY_COLOUR := Color("b02020")
 var flash: float = 0.0
 
 
@@ -89,11 +94,10 @@ func _draw() -> void:
 	draw_string(font, r.position + Vector2(r.size.x - 30, r.size.y - 6), "%s%d" % [char(65 + pos.x), pos.y + 1],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.6))
 	# Tokens.
-	var y := r.position.y + 48
 	if tile.enemies > 0:
-		_token(Vector2(r.position.x + 30, y), Color("b02020"), "E", tile.enemies, enemy_icon)
+		draw_token(self, ENEMY_AT, ENEMY_COLOUR, "E", tile.enemies, enemy_icon)
 	if tile.warriors > 0:
-		_token(Vector2(r.position.x + 84, y), Color("2060b0"), "W", tile.warriors, warrior_icon)
+		draw_token(self, WARRIOR_AT, Color("2060b0"), "W", tile.warriors, warrior_icon)
 	# Nobles along the bottom.
 	var step := minf(26.0, (r.size.x - 50) / maxf(1, nobles.size() - 1))
 	var rad := minf(12.0, step / 2 + 1)
@@ -108,21 +112,28 @@ func _draw() -> void:
 		draw_rect(r, Color(1, 1, 0.6, flash * 0.5))
 
 
-func _token(c: Vector2, col: Color, letter: String, n: int, icon: Texture2D) -> void:
-	var font := get_theme_default_font()
+## Draws a stack of enemy or warrior tokens centred on c. Static so the enemy
+## turn's flying tokens look exactly like the ones on the board.
+static func draw_token(ci: Control, c: Vector2, col: Color, letter: String, n: int, icon: Texture2D) -> void:
+	var font := ci.get_theme_default_font()
 	if icon != null:
-		draw_circle(c + Vector2(2, 3), 21, Color(0, 0, 0, 0.4))
-		draw_texture_rect(icon, Rect2(c - Vector2(21, 21), Vector2(42, 42)), false)
+		ci.draw_circle(c + Vector2(2, 3), 21, Color(0, 0, 0, 0.4))
+		ci.draw_texture_rect(icon, Rect2(c - Vector2(21, 21), Vector2(42, 42)), false)
 		# Count badge.
 		var b := c + Vector2(16, 14)
-		draw_circle(b, 10, Color.BLACK)
-		draw_circle(b, 9, col)
+		ci.draw_circle(b, 10, Color.BLACK)
+		ci.draw_circle(b, 9, col)
 		var s := str(n)
 		var bw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-		draw_string(font, b + Vector2(-bw / 2, 5), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+		ci.draw_string(font, b + Vector2(-bw / 2, 5), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 		return
-	draw_circle(c, 18, Color.BLACK)
-	draw_circle(c, 16, col)
+	ci.draw_circle(c, 18, Color.BLACK)
+	ci.draw_circle(c, 16, col)
 	var text := "%s%d" % [letter, n]
 	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-	draw_string(font, c + Vector2(-w / 2, 5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	ci.draw_string(font, c + Vector2(-w / 2, 5), text, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+
+
+## The enemy stack's centre on this tile, in global coordinates.
+func enemy_anchor() -> Vector2:
+	return get_global_transform() * ENEMY_AT
