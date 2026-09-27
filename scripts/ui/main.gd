@@ -45,6 +45,13 @@ var animate_enemy_turn := true
 var animating := false
 var animator: EnemyTurnAnimator
 var animate_check: CheckBox
+## Animation speed multiplier: every enemy-turn and replay delay is divided by it.
+var anim_speed := 1.0
+const SPEED_MIN := 0.25
+const SPEED_MAX := 4.0
+var speed_label: Label
+## Where settings are kept; tests point this at a scratch file before _ready.
+var settings_path := SETTINGS_PATH
 var fx_layer: Control
 var blocker: Control
 var banner: PanelContainer
@@ -143,7 +150,24 @@ func _build_ui() -> void:
 	animate_check.button_pressed = animate_enemy_turn
 	animate_check.tooltip_text = "Replay the Enemy Phase step by step. Space or Esc skips."
 	animate_check.toggled.connect(func(on): animate_enemy_turn = on; _save_settings())
-	undo_row.add_child(animate_check)
+	var anim_row := HBoxContainer.new()
+	anim_row.add_theme_constant_override("separation", 8)
+	side.add_child(anim_row)
+	anim_row.add_child(animate_check)
+	anim_row.add_child(_label("Speed"))
+	var speed := HSlider.new()
+	speed.min_value = SPEED_MIN
+	speed.max_value = SPEED_MAX
+	speed.step = 0.25
+	speed.value = anim_speed
+	speed.custom_minimum_size = Vector2(160, 0)
+	speed.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ReplayViewer.style_slider(speed)
+	speed.value_changed.connect(set_anim_speed)
+	anim_row.add_child(speed)
+	speed_label = _label("")
+	anim_row.add_child(speed_label)
+	_update_speed_label()
 
 	# Turn track art on the left; status, prompts and the title cards beside it.
 	var info_row := HBoxContainer.new()
@@ -543,15 +567,39 @@ func fly_enemies(moves: Array, seconds: float) -> void:
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) == OK:
+	if cfg.load(settings_path) == OK:
 		animate_enemy_turn = bool(cfg.get_value("ui", "animate_enemy_turn", true))
+		anim_speed = clampf(float(cfg.get_value("ui", "animation_speed", 1.0)), SPEED_MIN, SPEED_MAX)
 
 
 func _save_settings() -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(SETTINGS_PATH)
+	cfg.load(settings_path)
 	cfg.set_value("ui", "animate_enemy_turn", animate_enemy_turn)
-	cfg.save(SETTINGS_PATH)
+	cfg.set_value("ui", "animation_speed", anim_speed)
+	cfg.save(settings_path)
+
+
+func set_anim_speed(v: float) -> void:
+	anim_speed = clampf(v, SPEED_MIN, SPEED_MAX)
+	_update_speed_label()
+	_save_settings()
+
+
+func _update_speed_label() -> void:
+	speed_label.text = "%s×  (%.2f s per tile)" % [str(anim_speed), scaled(EnemyTurnAnimator.STEP_SECONDS)]
+	var tip := "Animation speed %s×: %.2f s per tile of enemy movement; every other pause in the enemy turn and replays scales the same way." % [
+		str(anim_speed), scaled(EnemyTurnAnimator.STEP_SECONDS)]
+	speed_label.tooltip_text = tip
+	speed_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	for c in speed_label.get_parent().get_children():
+		if c is HSlider:
+			c.tooltip_text = tip
+
+
+## A delay in seconds at the chosen animation speed.
+func scaled(seconds: float) -> float:
+	return seconds / anim_speed
 
 
 ## Hover text for a tile: its passives as they stand now, and each action with the

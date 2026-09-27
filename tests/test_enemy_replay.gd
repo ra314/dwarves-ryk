@@ -7,6 +7,7 @@ var main
 
 func before_each() -> void:
 	main = load("res://scenes/main.tscn").instantiate()
+	main.settings_path = "user://test_settings.cfg"  # never touch the player's settings
 	add_child_autofree(main)
 	main.recorder.dir = "user://test_replays"  # keep tests out of the real replays folder
 

@@ -3,7 +3,7 @@ extends VBoxContainer
 ## Controls for watching a recorded game: first/back/play/forward/last, a scrub
 ## slider, and what the current step was. The main screen draws each frame.
 
-const PLAY_DELAY := 0.8  # seconds between steps while playing
+const PLAY_DELAY := 0.8  # seconds between steps while playing, at 1× speed
 
 var main  # the main screen (untyped: main.gd has no class_name)
 var frames: Array = []
@@ -33,17 +33,7 @@ func _init(screen) -> void:
 	_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_slider.step = 1
-	# The default track is nearly invisible on the dark background.
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color("4a4238")
-	track.content_margin_top = 3
-	track.content_margin_bottom = 3
-	track.set_corner_radius_all(3)
-	_slider.add_theme_stylebox_override("slider", track)
-	var filled := track.duplicate()
-	filled.bg_color = Color("c9a45c")
-	_slider.add_theme_stylebox_override("grabber_area", filled)
-	_slider.add_theme_stylebox_override("grabber_area_highlight", filled)
+	style_slider(_slider)
 	_slider.value_changed.connect(func(v): if int(v) != index: go_to(int(v)))
 	row.add_child(_slider)
 	var exit := Button.new()
@@ -53,6 +43,20 @@ func _init(screen) -> void:
 	_label = Label.new()
 	_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	add_child(_label)
+
+
+## The default slider track is nearly invisible on the dark background.
+static func style_slider(slider: HSlider) -> void:
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color("4a4238")
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+	track.set_corner_radius_all(3)
+	slider.add_theme_stylebox_override("slider", track)
+	var filled := track.duplicate()
+	filled.bg_color = Color("c9a45c")
+	slider.add_theme_stylebox_override("grabber_area", filled)
+	slider.add_theme_stylebox_override("grabber_area_highlight", filled)
 
 
 func open(replay_frames: Array) -> void:
@@ -88,6 +92,6 @@ func _toggle_play() -> void:
 		go_to(0)
 	while playing and index < frames.size() - 1:
 		await go_to(index + 1, true)
-		await main.get_tree().create_timer(PLAY_DELAY).timeout
+		await main.get_tree().create_timer(main.scaled(PLAY_DELAY)).timeout
 	playing = false
 	_play.text = "▶"

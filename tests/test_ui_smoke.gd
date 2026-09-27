@@ -6,6 +6,7 @@ var main
 
 func before_each() -> void:
 	main = load("res://scenes/main.tscn").instantiate()
+	main.settings_path = "user://test_settings.cfg"  # never touch the player's settings
 	add_child_autofree(main)
 	main.recorder.dir = "user://test_replays"  # keep tests out of the real replays folder
 
@@ -187,3 +188,20 @@ func test_record_then_watch_replay_and_exit() -> void:
 	assert_eq(main.engine.state.to_dict(), live, "your game is back as it was")
 	assert_true(main.engine.can_undo(), "and so is its undo history")
 	DirAccess.remove_absolute(path)
+
+
+func test_animation_speed_scales_delays_and_is_saved() -> void:
+	main.set_anim_speed(2.0)
+	assert_almost_eq(main.scaled(EnemyTurnAnimator.STEP_SECONDS), 0.1, 0.0001)
+	assert_almost_eq(main.scaled(ReplayViewer.PLAY_DELAY), 0.4, 0.0001)
+	assert_string_starts_with(main.speed_label.text, "2×  (0.10 s per tile)")
+	main.set_anim_speed(99.0)
+	assert_eq(main.anim_speed, main.SPEED_MAX, "clamped")
+	main.set_anim_speed(0.5)
+	# A fresh screen reads the saved speed back.
+	var other = load("res://scenes/main.tscn").instantiate()
+	other.settings_path = "user://test_settings.cfg"
+	add_child_autofree(other)
+	assert_eq(other.anim_speed, 0.5)
+	assert_almost_eq(other.scaled(EnemyTurnAnimator.STEP_SECONDS), 0.4, 0.0001)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))

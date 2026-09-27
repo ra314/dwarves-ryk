@@ -5,7 +5,8 @@ extends RefCounted
 ## flash. It works on a display copy of the board from just before the command;
 ## the real state is already final and is drawn again when the replay ends.
 
-## Flight time for one tile's group of enemies.
+## Flight time for one tile's group of enemies at 1× speed. All durations here
+## are at 1×; main.scaled() applies the player's animation speed.
 const STEP_SECONDS := 0.2
 const DIR_ARROWS := {"north": "↑", "east": "→", "south": "↓", "west": "←"}
 
@@ -98,7 +99,7 @@ func _move_step(roll: Dictionary, moves: Array) -> void:
 		board.tile_at(m["from"]).enemies -= int(m["count"])
 		main.draw_board(board)
 		if not skip:
-			await main.fly_enemies([m], STEP_SECONDS)
+			await main.fly_enemies([m], main.scaled(STEP_SECONDS))
 		board.tile_at(m["to"]).enemies += int(m["count"])
 		main.draw_board(board)
 	await _wait(0.2)
@@ -134,7 +135,7 @@ func _show(text: String, seconds: float, focus: Vector2i = PlayerState.NO_TILE) 
 func _wait(seconds: float) -> void:
 	if skip:
 		return
-	await main.get_tree().create_timer(seconds).timeout
+	await main.get_tree().create_timer(main.scaled(seconds)).timeout
 
 
 func _pulse(pos: Vector2i) -> void:
