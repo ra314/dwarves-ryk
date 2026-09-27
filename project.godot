@@ -12,7 +12,12 @@ config/features=PackedStringArray("4.3")
 
 window/size/viewport_width=1600
 window/size/viewport_height=960
-window/stretch/aspect="expand"
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.118, 0.106, 0.094, 1)
 
 [editor_plugins]
 

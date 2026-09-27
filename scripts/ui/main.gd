@@ -69,6 +69,7 @@ func _build_ui() -> void:
 	top.add_child(unlimited_check)
 	top.add_child(_button("Save", _save))
 	top.add_child(_button("Load", _load))
+	top.add_child(_button("Fullscreen (F11)", _toggle_fullscreen))
 	status_label = _label("")
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -215,6 +216,15 @@ func _unhandled_input(e: InputEvent) -> void:
 		_undo()
 	elif e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
 		_cancel_target()
+	elif e is InputEventKey and e.pressed and not e.echo and e.keycode == KEY_F11:
+		_toggle_fullscreen()
+
+
+## The layout is fixed at 1600x960 and scaled to fit the window (project stretch
+## settings: canvas_items + keep), so fullscreen just makes everything bigger.
+func _toggle_fullscreen() -> void:
+	var fs := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if fs else DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 # --- Drawing ----------------------------------------------------------------------
