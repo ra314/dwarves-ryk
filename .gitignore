@@ -1,0 +1,6 @@
+# Godot
+.godot/
+export_presets.cfg
+
+# Artwork and rulebook belong to Pink Wizard Games; never commit them.
+assets/

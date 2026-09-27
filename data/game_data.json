@@ -1,0 +1,720 @@
+{
+  "_about": "Dwarves: Reclaim Your Kingdom (Pink Wizard Games). Data transcribed from the TTS mod's tiles, title cards and rulebook. 'min' is the dice value needed; 'cost' is resources spent. Images are relative to res://assets/.",
+  "limits": {
+    "grid_size": 5,
+    "max_enemy_tokens": 40,
+    "max_warrior_tokens": 20,
+    "max_tunnels": 5,
+    "enemies_to_create_tunnel": 6,
+    "resources_per_player_in_supply": 10,
+    "solo_supply": 20,
+    "starting_resources": 3,
+    "solo_starting_resources": 5,
+    "worker_assistance_max_dice": 2,
+    "noble_combat_min_single_die": 6,
+    "base_movement": 1,
+    "titles_per_player": 1,
+    "solo_titles_per_player": 2,
+    "warrior_carry_limit": {
+      "1": 5,
+      "2": 4,
+      "3": 4,
+      "4": 3,
+      "5": 3,
+      "6": 2
+    }
+  },
+  "players": {
+    "colours": [
+      "Green",
+      "Red",
+      "Purple",
+      "Blue",
+      "Yellow",
+      "White"
+    ],
+    "dice_owned": {
+      "d4": 3,
+      "d6": 4,
+      "d8": 3
+    },
+    "dice_active_at_start": {
+      "d4": 2,
+      "d6": 1,
+      "d8": 1
+    },
+    "extra_active_d6_if_players_at_most": 2,
+    "start_tile": "hearth"
+  },
+  "enemy_movement_die": {
+    "sides": 4,
+    "image": "components/enemy_movement.jpg",
+    "directions": {
+      "1": "north",
+      "2": "east",
+      "3": "south",
+      "4": "west"
+    },
+    "blocked_at_edge": "move in the opposite direction instead"
+  },
+  "turn_track": {
+    "image": "components/turn_track.jpg",
+    "spawn_per_cell": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      2,
+      2,
+      2,
+      3,
+      3,
+      3,
+      4,
+      4,
+      5,
+      5,
+      6,
+      6,
+      7,
+      7,
+      8,
+      8,
+      9,
+      9,
+      10,
+      10,
+      11,
+      11,
+      12,
+      12,
+      null
+    ],
+    "start_index_by_players": {
+      "1": 0,
+      "2": 0,
+      "3": 1,
+      "4": 2,
+      "5": 3,
+      "6": 4
+    },
+    "_notes": "Cells in play order (the printed track snakes). One-sided. Last cell (null) is the enemy symbol: reaching it loses the game. Solo starts on cell 0, same as 2P."
+  },
+  "setup_grid": {
+    "_notes": "Row 0 is the top (north) row, from the rulebook's setup example. 'ruins' = draw from the shuffled ruin stack, placed ruin side up.",
+    "layout": [
+      [
+        "tunnel",
+        "ruins",
+        "ruins",
+        "ruins",
+        "city_gate"
+      ],
+      [
+        "ruins",
+        "ruins",
+        "ruins",
+        "ruins",
+        "ruins"
+      ],
+      [
+        "ruins",
+        "barracks",
+        "mine",
+        "ruins",
+        "ruins"
+      ],
+      [
+        "ruins",
+        "hearth",
+        "living_quarters",
+        "ruins",
+        "ruins"
+      ],
+      [
+        "ruins",
+        "ruins",
+        "ruins",
+        "ruins",
+        "tunnel"
+      ]
+    ]
+  },
+  "ruins_back": {
+    "image": "tiles/ruins.jpg",
+    "actions": [
+      {
+        "id": "expedition",
+        "name": "Expedition",
+        "min": 3,
+        "cost": 2,
+        "effect": "flip_tile_and_spawn_d4_enemies",
+        "text": "-2 resources; Flip this tile. Roll the enemy dice and place that many enemy tokens here."
+      }
+    ],
+    "destructible": false
+  },
+  "tiles": [
+    {
+      "id": "hearth",
+      "name": "Hearth",
+      "image": "tiles/hearth.jpg",
+      "back": "tiles/starter_back.png",
+      "count": 1,
+      "starter": 1,
+      "in_ruins": 0,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [
+        {
+          "id": "motivated",
+          "name": "Motivated",
+          "effect": "movement_bonus_if_turn_started_here",
+          "value": 1,
+          "text": "When you start your turn here you gain +1 movement this turn"
+        }
+      ],
+      "actions": [],
+      "_notes": "Destroying the Hearth (turning it into a tunnel) loses the game."
+    },
+    {
+      "id": "mine",
+      "name": "Mine",
+      "image": "tiles/mine.jpg",
+      "back": "tiles/starter_back.png",
+      "count": 3,
+      "starter": 1,
+      "in_ruins": 2,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "dig_small",
+          "name": "Dig",
+          "min": 1,
+          "cost": 0,
+          "effect": "gain_resources",
+          "value": 1,
+          "text": "+1 resource"
+        },
+        {
+          "id": "dig_big",
+          "name": "Dig",
+          "min": 4,
+          "cost": 0,
+          "effect": "gain_resources",
+          "value": 3,
+          "text": "+3 resources"
+        },
+        {
+          "id": "claim_master_miner",
+          "name": "Master Miner",
+          "min": 12,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "master_miner",
+          "text": "Gain the 'Master Miner' title"
+        }
+      ],
+      "_notes": "Printed tile says 'Expert Miner'; renamed to match the title card."
+    },
+    {
+      "id": "living_quarters",
+      "name": "Living Quarters",
+      "image": "tiles/living_quarters.jpg",
+      "back": "tiles/starter_back.png",
+      "count": 2,
+      "starter": 1,
+      "in_ruins": 1,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "recruit_worker",
+          "name": "Recruit Worker",
+          "min": 4,
+          "cost": 2,
+          "effect": "activate_die_from_pool",
+          "die": "d4",
+          "text": "-2 resources; Gain a d4 worker from your dice pool"
+        },
+        {
+          "id": "claim_workmaster",
+          "name": "Workmaster",
+          "min": 14,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "workmaster",
+          "text": "Gain the 'Workmaster' title"
+        }
+      ],
+      "_notes": "Printed tile says 'trait'; it is the Workmaster title."
+    },
+    {
+      "id": "barracks",
+      "name": "Barracks",
+      "image": "tiles/barracks.jpg",
+      "back": "tiles/starter_back.png",
+      "count": 2,
+      "starter": 1,
+      "in_ruins": 1,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "train_warrior",
+          "name": "Train Warrior",
+          "min": 3,
+          "cost": 3,
+          "effect": "add_warriors_at_player",
+          "value": 1,
+          "text": "-3 resources; Place a warrior token on your space"
+        },
+        {
+          "id": "claim_master_of_the_guard",
+          "name": "Master of the Guard",
+          "min": 14,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "master_of_the_guard",
+          "text": "Gain the 'Master of the Guard' title"
+        }
+      ]
+    },
+    {
+      "id": "city_gate",
+      "name": "City Gate",
+      "image": "tiles/city_gate.jpg",
+      "back": "tiles/city_gate_secured.jpg",
+      "count": 1,
+      "starter": 1,
+      "in_ruins": 0,
+      "spawn_point": true,
+      "destructible": false,
+      "passives": [
+        {
+          "id": "endless_tide",
+          "name": "Endless Tide",
+          "effect": "spawn_point",
+          "text": "Spawn point"
+        }
+      ],
+      "actions": [
+        {
+          "id": "secure_the_gate",
+          "name": "Secure the Gate",
+          "min": 14,
+          "cost": 0,
+          "effect": "win_if_ready",
+          "requires": [
+            "no_ruins_left",
+            "no_open_tunnels"
+          ],
+          "text": "Flip this tile"
+        }
+      ],
+      "_notes": "Back side reads 'Gate Secured! The city is safe, you win!'"
+    },
+    {
+      "id": "tunnel",
+      "name": "Tunnel",
+      "image": "tiles/tunnel.jpg",
+      "back": "tiles/collapsed_tunnel.jpg",
+      "count": 5,
+      "starter": 2,
+      "in_ruins": 0,
+      "spawn_point": true,
+      "destructible": false,
+      "passives": [
+        {
+          "id": "more_enemies",
+          "name": "More Enemies!",
+          "effect": "spawn_point",
+          "text": "Spawn point"
+        }
+      ],
+      "actions": [
+        {
+          "id": "collapse_tunnel",
+          "name": "Collapse the tunnel",
+          "min": 12,
+          "cost": 0,
+          "effect": "flip_tile",
+          "text": "Flip this tile"
+        }
+      ],
+      "back_side": {
+        "name": "Collapsed Tunnel",
+        "passives": [
+          {
+            "id": "safe",
+            "name": "Safe",
+            "effect": "none",
+            "text": "No longer a spawn point"
+          }
+        ],
+        "actions": []
+      },
+      "_notes": "2 start on the grid; the other 3 are placed when enemies destroy a building."
+    },
+    {
+      "id": "empty_halls",
+      "name": "Empty Halls",
+      "image": "tiles/empty_halls.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 4,
+      "starter": 0,
+      "in_ruins": 4,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [
+        {
+          "id": "lost",
+          "name": "Lost",
+          "effect": "cannot_leave",
+          "text": "You can't move off this tile"
+        }
+      ],
+      "actions": [
+        {
+          "id": "discover_the_path",
+          "name": "Discover the path",
+          "min": 5,
+          "cost": 0,
+          "effect": "allow_leave_this_turn",
+          "text": "You can move again"
+        }
+      ]
+    },
+    {
+      "id": "watchtower",
+      "name": "Watchtower",
+      "image": "tiles/watchtower.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 2,
+      "starter": 0,
+      "in_ruins": 2,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [
+        {
+          "id": "garrison",
+          "name": "Garrison",
+          "effect": "nobles_cannot_be_wounded_here",
+          "text": "Dwarf nobles can't be wounded here"
+        }
+      ],
+      "actions": [
+        {
+          "id": "axe_throwers",
+          "name": "Axe Throwers",
+          "min": 4,
+          "cost": 0,
+          "effect": "remove_enemies",
+          "value": 1,
+          "range": "adjacent",
+          "text": "Remove an enemy at an adjacent tile"
+        }
+      ]
+    },
+    {
+      "id": "blacksmith",
+      "name": "Blacksmith",
+      "image": "tiles/blacksmith.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 2,
+      "starter": 0,
+      "in_ruins": 2,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "promote_worker",
+          "name": "Promote Worker",
+          "min": 5,
+          "cost": 3,
+          "effect": "upgrade_die",
+          "upgrades": {
+            "d4": "d6",
+            "d6": "d8"
+          },
+          "text": "-3 resources; Swap a d4 for a d6 dice OR a d6 for a d8 dice"
+        },
+        {
+          "id": "claim_master_smith",
+          "name": "Master Smith",
+          "min": 13,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "master_smith",
+          "text": "Gain the 'Master Smith' title"
+        }
+      ]
+    },
+    {
+      "id": "encampment",
+      "name": "Encampment",
+      "image": "tiles/encampment.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 3,
+      "starter": 0,
+      "in_ruins": 3,
+      "spawn_point": false,
+      "destructible": true,
+      "on_flip": {
+        "id": "more_and_more",
+        "name": "More and More!",
+        "effect": "spawn_enemies_here_fixed",
+        "value": 6,
+        "text": "+6 Enemy tokens here (don't roll)"
+      },
+      "passives": [],
+      "actions": [
+        {
+          "id": "false_commands",
+          "name": "False Commands",
+          "min": 3,
+          "cost": 0,
+          "effect": "move_one_enemy",
+          "range_tiles": 2,
+          "text": "Move 1 enemy anywhere on map up to 2 tiles"
+        }
+      ]
+    },
+    {
+      "id": "throne_room",
+      "name": "Throne Room",
+      "image": "tiles/throne_room.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 1,
+      "starter": 0,
+      "in_ruins": 1,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "coronation",
+          "name": "Coronation",
+          "min": 14,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "regent",
+          "text": "Gain the 'Regent' title"
+        }
+      ]
+    },
+    {
+      "id": "aviary",
+      "name": "Aviary",
+      "image": "tiles/aviary.jpg",
+      "back": "tiles/ruins.jpg",
+      "count": 2,
+      "starter": 0,
+      "in_ruins": 2,
+      "spawn_point": false,
+      "destructible": true,
+      "passives": [],
+      "actions": [
+        {
+          "id": "reinforcements",
+          "name": "Reinforcements",
+          "min": 13,
+          "cost": 3,
+          "effect": "add_warriors_at_tile",
+          "tile": "hearth",
+          "value": 3,
+          "text": "-3 resources; add 3 warrior tokens to the Hearth"
+        },
+        {
+          "id": "claim_messenger",
+          "name": "Messenger",
+          "min": 10,
+          "cost": 0,
+          "effect": "gain_title",
+          "title": "messenger",
+          "text": "Gain the 'Messenger' title"
+        }
+      ]
+    }
+  ],
+  "titles": [
+    {
+      "id": "messenger",
+      "name": "Messenger",
+      "claimed_at": "aviary",
+      "image": "titles/messenger.png",
+      "abilities": [
+        {
+          "id": "cheap_expeditions",
+          "type": "passive",
+          "effect": "expedition_cost_zero",
+          "text": "Expeditions cost no resources"
+        },
+        {
+          "id": "quiet_movements",
+          "type": "passive",
+          "effect": "expedition_spawns_fixed",
+          "value": 1,
+          "text": "Expeditions spawn 1 enemy"
+        },
+        {
+          "id": "speedy",
+          "type": "passive",
+          "effect": "movement_bonus",
+          "value": 1,
+          "text": "+1 Movement"
+        }
+      ]
+    },
+    {
+      "id": "master_miner",
+      "name": "Master Miner",
+      "claimed_at": "mine",
+      "image": "titles/master_miner.png",
+      "abilities": [
+        {
+          "id": "advanced_miner",
+          "type": "passive",
+          "effect": "die_bonus_at_tile",
+          "tile": "mine",
+          "value": 3,
+          "text": "Workers gain +3 to their value when used at the mine"
+        },
+        {
+          "id": "minecart_network",
+          "type": "passive",
+          "effect": "free_move_between_mines",
+          "text": "You are able to move between mines for free"
+        }
+      ]
+    },
+    {
+      "id": "master_of_the_guard",
+      "name": "Master of the Guard",
+      "claimed_at": "barracks",
+      "image": "titles/master_of_the_guard.png",
+      "abilities": [
+        {
+          "id": "tough",
+          "type": "passive",
+          "effect": "wound_no_skip_no_return",
+          "text": "When you're wounded you don't miss a round or return to the Hearth"
+        },
+        {
+          "id": "personal_guard",
+          "type": "action",
+          "min": 4,
+          "cost": 0,
+          "effect": "remove_enemies",
+          "value": 1,
+          "range": "own_or_adjacent",
+          "text": "Kill an enemy at yours or an adjacent tile"
+        }
+      ]
+    },
+    {
+      "id": "workmaster",
+      "name": "Workmaster",
+      "claimed_at": "living_quarters",
+      "image": "titles/workmaster.png",
+      "abilities": [
+        {
+          "id": "workmaster",
+          "type": "passive",
+          "effect": "worker_assistance_max_dice",
+          "value": 3,
+          "text": "Worker assistance limit is 3"
+        },
+        {
+          "id": "veteran_worker",
+          "type": "passive",
+          "effect": "add_die",
+          "die": "d10",
+          "text": "Add 1d10 to your worker pool"
+        }
+      ]
+    },
+    {
+      "id": "master_smith",
+      "name": "Master Smith",
+      "claimed_at": "blacksmith",
+      "image": "titles/master_smith.png",
+      "abilities": [
+        {
+          "id": "master_smith",
+          "type": "passive",
+          "effect": "action_min_override",
+          "action": "promote_worker",
+          "value": 1,
+          "text": "The Blacksmith's 'Promote' ability is a (1+) for you"
+        },
+        {
+          "id": "architect",
+          "type": "action",
+          "min": 6,
+          "cost": 0,
+          "effect": "swap_adjacent_tiles",
+          "text": "Swap any 2 adjacent tiles on the map (tokens and nobles don't move with tiles)"
+        }
+      ]
+    },
+    {
+      "id": "regent",
+      "name": "Regent",
+      "claimed_at": "throne_room",
+      "image": "titles/regent.png",
+      "abilities": [
+        {
+          "id": "royal_guard",
+          "type": "passive",
+          "effect": "add_die",
+          "die": "d12",
+          "text": "Add the Royal Guard dice to your pool (d12)"
+        },
+        {
+          "id": "bodyguard",
+          "type": "action",
+          "min": 7,
+          "cost": 0,
+          "single_die": true,
+          "effect": "remove_enemies",
+          "value": 2,
+          "range": "own_or_adjacent",
+          "text": "Kill 2 enemies (must use one dice for this)"
+        }
+      ]
+    }
+  ],
+  "rule_decisions": {
+    "_notes": "House rulings for gaps in the rulebook. See RULES.md, 'Rulings'.",
+    "spawn_full_amount_at_each_spawn_point": true,
+    "starting_resources_come_from_supply": true,
+    "nobles_can_enter_ruins": true,
+    "warrior_enemy_combat": "one_for_one",
+    "noble_combat_only_in_dwarf_phase": true,
+    "tough_still_advances_turn_track": true,
+    "tough_noble_stays_on_tile": true,
+    "encampment_spawn_overrides_messenger": true,
+    "blocked_tiles_disable_passives": true,
+    "discover_path_restores_all_movement": true,
+    "enemies_stay_on_new_tunnel": true,
+    "surge_replaces_spawn": true,
+    "promoted_die_usable_from": "next_round",
+    "title_dice_return_with_title": true,
+    "recruited_die_usable_from": "next_round",
+    "undo_history": "shared",
+    "unlimited_undo_rerolls_are_random": true
+  },
+  "settings": {
+    "unlimited_undo": false,
+    "_notes": "unlimited_undo: if true, undo can rewind past dice rolls, tile flips and other reveals."
+  }
+}

@@ -1,0 +1,45 @@
+Board & table	Table surface	https://steamusercontent-a.akamaihd.net/ugc/53577344277355547/AAEA8B8525497CD97E1E2BCD61A6EB16E0E19315/
+Board & table	Main board – front	https://steamusercontent-a.akamaihd.net/ugc/53577344277351465/A349222BE96CDE541FB94626F0491165932FCDDD/
+Board & table	Main board – back	https://steamusercontent-a.akamaihd.net/ugc/2001325032158734839/DED38C71399BA12703982A4548DD35651035B5B8/
+Rulebook	Rulebook (PDF)	https://steamusercontent-a.akamaihd.net/ugc/53577344277336897/130FA8F63D41A536A9BCDD00BD6266424948A19F/
+Card sheets (fronts)	Messenger card 1	https://steamusercontent-a.akamaihd.net/ugc/2001325032159100916/45DF30DCD4FE43C0B4D44665CEEF1D2281D5CEC5/
+Card sheets (fronts)	Card sheet 1	https://steamusercontent-a.akamaihd.net/ugc/53577344277342303/03840BE038693DFC5C79FB59ECC2F6C8AB22284E/
+Card sheets (fronts)	Card sheet 2	https://steamusercontent-a.akamaihd.net/ugc/53577344277350913/6ECC292A0524F246DBE5927D258BA23178469EEA/
+Card sheets (fronts)	Card sheet 3	https://steamusercontent-a.akamaihd.net/ugc/53577344277344505/F619B9F620EE8891544D107F19EA9E2876B3F525/
+Card sheets (fronts)	Card sheet 4	https://steamusercontent-a.akamaihd.net/ugc/53577344277342717/D99FB1AA0BC328545A31EB1E930E366B5F9CC732/
+Card sheets (fronts)	Card sheet 5	https://steamusercontent-a.akamaihd.net/ugc/53577344277343848/1B127C0A9B05AE49A1CEF88E7159D2AD75FF1F7B/
+Card sheets (fronts)	Card sheet 6	https://steamusercontent-a.akamaihd.net/ugc/53577344277344116/E4EEB3B8F0A54BFFF911B687E7396891EBA66C56/
+Card sheets (fronts)	Card sheet 7	https://steamusercontent-a.akamaihd.net/ugc/53577344277338593/DF5DBDBB504054878C32E70949EB34BCEAE9966E/
+Card sheets (fronts)	Card sheet 8	https://steamusercontent-a.akamaihd.net/ugc/53577344277349767/C867C9F1508EE48300B4884DEEF142A99704A669/
+Card sheets (fronts)	Messenger card 2	https://steamusercontent-a.akamaihd.net/ugc/2001325032159105496/156D7111727FC90E87E67F8E1D215D920A8DE24C/
+Card sheets (fronts)	Messenger card 3	https://steamusercontent-a.akamaihd.net/ugc/2001325032159104409/29799322BF50F235671F1C3E3AA7B2AE7A191EBA/
+Card sheets (fronts)	Messenger card 4	https://steamusercontent-a.akamaihd.net/ugc/2001325032159103205/4B2932DC85CF39C3C70D84AA1CD842E86C5BBE74/
+Card sheets (fronts)	Messenger card 5	https://steamusercontent-a.akamaihd.net/ugc/2001325032159102676/8EBE15ED2100C190E187DECA3BB4E3447778BBE5/
+Card sheets (fronts)	Messenger card 6	https://steamusercontent-a.akamaihd.net/ugc/2001325032159102136/3DE8E53410C089969065FF701055DE03B068D0DA/
+Card sheets (fronts)	Card sheet 9	https://steamusercontent-a.akamaihd.net/ugc/53577344277345133/227FBC4964989A944A06F21FBE0854BB2E2E6F70/
+Card sheets (fronts)	Card sheet 10	https://steamusercontent-a.akamaihd.net/ugc/53577344277346482/A98E6161D75914B073187E466DC94BE4629AF0DE/
+Card sheets (fronts)	Card sheet 11	https://steamusercontent-a.akamaihd.net/ugc/53577344277347085/DE54155D3D95CB5803CBBCE02C3CE55985385645/
+Card sheets (fronts)	Card sheet 12	https://steamusercontent-a.akamaihd.net/ugc/53577344277346879/CC4DC61A888D4DAE87203037C799BB798D6DE456/
+Card sheets (fronts)	Card sheet 13	https://steamusercontent-a.akamaihd.net/ugc/53577344277347324/932E372BFC1C61DA581A0AAD6943511FCB1A8C3C/
+Card sheets (fronts)	Card sheet 14	https://steamusercontent-a.akamaihd.net/ugc/53577344277347198/63F54AFDA0EB0E78B077EC419F07CD2E1814027B/
+Card backs	Messenger back	https://steamusercontent-a.akamaihd.net/ugc/2001325032159101073/9974343F00A60AA0C4C68B2709E4D4F9EB0F9B2C/
+Card backs	Card back 1	https://steamusercontent-a.akamaihd.net/ugc/53577344277342368/786BCBA81D7ACA6D98F652A3C76980EB7F76CD45/
+Card backs	Card back 2	https://steamusercontent-a.akamaihd.net/ugc/53577344277350985/D85D0E86A9BA913431965E66B1B8908D65F01055/
+Card backs	Card back 3	https://steamusercontent-a.akamaihd.net/ugc/53577344277342847/DE01A901D66C58CC835435280B783E50A301138D/
+Card backs	Card back 4	https://steamusercontent-a.akamaihd.net/ugc/53577344277339220/FA0C144BA3EB4F6786848646870CC5EB6F5BE15D/
+Card backs	Card back 5	https://steamusercontent-a.akamaihd.net/ugc/53577344277349831/8360F65AB587A3E2EE01E24FCDEA7A4B86C9EE1A/
+Card backs	Card back 6	https://steamusercontent-a.akamaihd.net/ugc/53577344277345386/AD948B931091506F52B2D2ED517CC6589F106C75/
+Tokens	Warrior token	https://steamusercontent-a.akamaihd.net/ugc/1684898237974074787/287B21BE93AC7D6C56F70AEB2E8ACD7188A030D8/
+Tokens	Enemy	https://steamusercontent-a.akamaihd.net/ugc/1692775186328834141/2EE033A6756232083760EBC7621373312B77EB54/
+Tokens	Turn Marker	https://steamusercontent-a.akamaihd.net/ugc/53577344277362162/FE426B7223DF1340C426B108D3561B8329A0C6A2/
+3D models & textures	D4.obj	https://www.dropbox.com/s/pqgmre7yshg1v2j/D4.obj?dl=1
+3D models & textures	D4.tex.black.figures.png	https://www.dropbox.com/s/pzb9bizj2uu211t/D4.tex.black.figures.png?dl=1
+3D models & textures	D4.collider.obj	https://www.dropbox.com/s/1pexfc6qtjhzh6q/D4.collider.obj?dl=1
+3D models & textures	Bag model (.obj)	https://steamusercontent-a.akamaihd.net/ugc/1736692362647539530/951288C54AD2576B52A1D74B715407F2B3D4677B/
+3D models & textures	Bag texture	https://steamusercontent-a.akamaihd.net/ugc/1736692362647492141/3924400BE2863220B5F158016FB16045371FF90F/
+3D models & textures	D6.obj	https://www.dropbox.com/s/6yvcdowdlflr156/D6.obj?dl=1
+3D models & textures	D6.tex.black.figures.png	https://www.dropbox.com/s/xqf8xhhn5c5cxqb/D6.tex.black.figures.png?dl=1
+3D models & textures	D6.collider.obj	https://www.dropbox.com/s/96eqcp3q46g1ap8/D6.collider.obj?dl=1
+3D models & textures	D8.obj	https://www.dropbox.com/s/5hwuadzl8a95ucc/D8.obj?dl=1
+3D models & textures	D8.tex.black.figures.png	https://www.dropbox.com/s/cs45pcotzp7brmk/D8.tex.black.figures.png?dl=1
+3D models & textures	D8.collider.obj	https://www.dropbox.com/s/ggr4xnluvms7879/D8.collider.obj?dl=1
