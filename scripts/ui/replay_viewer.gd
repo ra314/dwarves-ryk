@@ -20,14 +20,15 @@ func _init(screen) -> void:
 	main = screen
 	var row := HBoxContainer.new()
 	add_child(row)
-	for b in [["⏮", func(): go_to(0)], ["◀", func(): go_to(index - 1)], ["▶", _toggle_play],
-			["▶|", func(): go_to(index + 1, true)], ["⏭", func(): go_to(frames.size() - 1)]]:
+	# Plain text labels: the browser build has no system fonts for symbols like ▶.
+	for b in [["|<", func(): go_to(0)], ["<", func(): go_to(index - 1)], ["Play", _toggle_play],
+			[">", func(): go_to(index + 1, true)], [">|", func(): go_to(frames.size() - 1)]]:
 		var btn := Button.new()
 		btn.text = b[0]
 		btn.custom_minimum_size = Vector2(38, 0)
 		btn.pressed.connect(b[1])
 		row.add_child(btn)
-		if b[0] == "▶":
+		if b[0] == "Play":
 			_play = btn
 	_slider = HSlider.new()
 	_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -62,7 +63,7 @@ static func style_slider(slider: HSlider) -> void:
 func open(replay_frames: Array) -> void:
 	frames = replay_frames
 	playing = false
-	_play.text = "▶"
+	_play.text = "Play"
 	_slider.max_value = frames.size() - 1
 	index = -1
 	go_to(0)
@@ -87,11 +88,11 @@ func go_to(i: int, animate: bool = false) -> void:
 
 func _toggle_play() -> void:
 	playing = not playing
-	_play.text = "⏸" if playing else "▶"
+	_play.text = "Pause" if playing else "Play"
 	if playing and index >= frames.size() - 1:
 		go_to(0)
 	while playing and index < frames.size() - 1:
 		await go_to(index + 1, true)
 		await main.get_tree().create_timer(main.scaled(PLAY_DELAY)).timeout
 	playing = false
-	_play.text = "▶"
+	_play.text = "Play"

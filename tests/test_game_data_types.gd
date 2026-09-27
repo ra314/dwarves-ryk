@@ -21,3 +21,18 @@ func test_track_tooltip_has_no_decimal() -> void:
 	add_child_autofree(tv)
 	tv.show_index(0, GameData.load_default().spawn_per_cell()[0])
 	assert_string_contains(tv.tooltip_text, "Next spawn: 1 per spawn point")
+
+
+func test_track_crop_follows_texture_size() -> void:
+	# Full-size art: the measured crop as is.
+	assert_eq(TrackView.source_rect(Vector2(1016, 1961)), TrackView.CROP)
+	# Imported at a 1024px size limit (530x1024): the crop shrinks with it.
+	var r := TrackView.source_rect(Vector2(530.5, 1024))
+	assert_almost_eq(r.size.y, TrackView.CROP.size.y * 1024.0 / 1961.0, 0.01)
+	assert_almost_eq(r.position.x, TrackView.CROP.position.x * 530.5 / 1016.0, 0.01)
+
+
+func test_imported_track_texture_is_mapped() -> void:
+	var tex: Texture2D = load("res://assets/components/turn_track.jpg")
+	var r := TrackView.source_rect(tex.get_size())
+	assert_true(Rect2(Vector2.ZERO, tex.get_size()).encloses(r), "crop stays inside the real texture")

@@ -8,7 +8,6 @@ extends RefCounted
 ## Flight time for one tile's group of enemies at 1× speed. All durations here
 ## are at 1×; main.scaled() applies the player's animation speed.
 const STEP_SECONDS := 0.2
-const DIR_ARROWS := {"north": "↑", "east": "→", "south": "↓", "west": "←"}
 
 var main  # the main screen (untyped: main.gd has no class_name)
 var skip := false
@@ -88,9 +87,8 @@ func _step(e: Dictionary) -> void:
 
 func _move_step(roll: Dictionary, moves: Array) -> void:
 	if roll.has("direction"):
-		var arrow: String = DIR_ARROWS.get(roll["direction"], "")
 		var title := "ENEMY SURGE! " if roll["type"] == "enemy_surge" else "Enemy die: %d. " % roll["value"]
-		await _show("%sEnemies move %s %s" % [title, roll["direction"], arrow], 0.9)
+		await _show("%sEnemies move %s" % [title, roll["direction"]], 0.9)
 	if moves.is_empty():
 		return
 	# One tile's group at a time, front of the march first, so a group has left

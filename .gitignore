@@ -1,4 +1,4 @@
 # Godot
 .godot/
-export_presets.cfg
+build/
 

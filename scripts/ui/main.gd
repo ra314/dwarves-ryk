@@ -72,6 +72,36 @@ func _ready() -> void:
 	animator = EnemyTurnAnimator.new(self)
 	_build_ui()
 	_new_game()
+	# In the browser, ?replay=<url> opens a shared replay straight away.
+	if OS.has_feature("web"):
+		WebReplays.open_from_url_param(_on_web_replay)
+
+
+func _on_replays_menu(id: int) -> void:
+	match id:
+		0:  # Watch a replay…
+			if OS.has_feature("web"):
+				WebReplays.pick_file(_on_web_replay)
+			else:
+				replay_dialog.current_dir = ProjectSettings.globalize_path(ReplayLog.DIR)
+				replay_dialog.popup_centered_ratio(0.7)
+		1:  # Open the replays folder (desktop)
+			DirAccess.make_dir_recursive_absolute(ReplayLog.DIR)
+			OS.shell_open(ProjectSettings.globalize_path(ReplayLog.DIR))
+		2:  # Download this game's replay (web)
+			if recorder.path == "":
+				_error("Nothing to download yet: take an action first.")
+			else:
+				WebReplays.download(recorder.path)
+
+
+## A replay picked or fetched in the browser: keep a copy in user:// and watch it.
+func _on_web_replay(file_name: String, text: String) -> void:
+	var path := WebReplays.store(file_name, text)
+	if path == "":
+		_error("Couldn't open %s." % file_name)
+		return
+	enter_replay(path)
 
 
 # --- Layout ---------------------------------------------------------------------
@@ -120,14 +150,11 @@ func _build_ui() -> void:
 	replays.flat = false
 	replays.tooltip_text = "Every game is recorded. Share a .%s file from the replays folder;\nanyone with the game can watch it here." % ReplayLog.EXTENSION
 	replays.get_popup().add_item("Watch a replay…", 0)
-	replays.get_popup().add_item("Open the replays folder", 1)
-	replays.get_popup().id_pressed.connect(func(id):
-		if id == 0:
-			replay_dialog.current_dir = ProjectSettings.globalize_path(ReplayLog.DIR)
-			replay_dialog.popup_centered_ratio(0.7)
-		else:
-			DirAccess.make_dir_recursive_absolute(ReplayLog.DIR)
-			OS.shell_open(ProjectSettings.globalize_path(ReplayLog.DIR)))
+	if OS.has_feature("web"):
+		replays.get_popup().add_item("Download this game's replay", 2)
+	else:
+		replays.get_popup().add_item("Open the replays folder", 1)
+	replays.get_popup().id_pressed.connect(_on_replays_menu)
 	top.add_child(replays)
 
 	replay_bar = ReplayViewer.new(self)
@@ -241,7 +268,7 @@ func _build_ui() -> void:
 	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
 	blocker.visible = false
 	add_child(blocker)
-	var skip_button := _button("Skip ▶▶  (Space)", func(): animator.skip = true)
+	var skip_button := _button("Skip >>  (Space)", func(): animator.skip = true)
 	skip_button.position = Vector2(MARGIN + 8, 960 - MARGIN - 48)
 	blocker.add_child(skip_button)
 	banner = PanelContainer.new()
@@ -687,7 +714,7 @@ func _refresh_players() -> void:
 			var thumb := CardThumb.make(_cached_texture(engine.data.title(t)["image"]), 34, _title_tip(t))
 			head.add_child(thumb)
 		var done := Button.new()
-		done.text = "Done" if not p.done else "✓ done"
+		done.text = "Done" if not p.done else "(done)"
 		done.disabled = replay_mode or engine.check(MarkDoneCommand.new(p.index)) != ""
 		done.pressed.connect(func(): _run(MarkDoneCommand.new(p.index)))
 		head.add_child(done)
@@ -1025,7 +1052,7 @@ func _event_text(e: Dictionary) -> String:
 		"noble_wounded":
 			return "[color=red]%s is wounded%s[/color]" % [_colour(e["player"]), " but Tough" if e["tough"] else ""]
 		"noble_revived": return "%s returns to the Hearth" % _colour(e["player"])
-		"track_advanced": return "Turn marker → %d" % e["index"]
+		"track_advanced": return "Turn marker moves to %d" % e["index"]
 		"title_gained": return "%s becomes %s" % [_colour(e["player"]), engine.data.title(e["title"])["name"]]
 		"title_returned": return "%s returns %s" % [_colour(e["player"]), engine.data.title(e["title"])["name"]]
 		"resources_gained": return "%s gains %d resource%s" % [_colour(e["player"]), e["amount"], "" if e["amount"] == 1 else "s"]

@@ -97,6 +97,15 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 - Text-only random game: `godot --headless -s res://tools/debug_game.gd -- <players> <seed>`.
 - Without `assets/`, tiles are drawn as labelled colour blocks.
 
+## Web build (GitHub Pages)
+
+- `.github/workflows/pages.yml` runs on every push: installs Godot 4.3 and only its web templates (`tools/fetch_web_templates.py`, which range-reads the 1 GB template pack), imports, runs the tests, exports the "Web" preset from `export_presets.cfg` to `build/web/`, and deploys to Pages from the default branch. One-time repo setting: Settings → Pages → Source: GitHub Actions.
+- The preset is built **without threads**, because Pages can't send the cross-origin-isolation headers threads need. Tests, tools, docs, GUT and unused art are excluded.
+- Art is imported as lossy WebP with size limits (tiles and titles 640 px, tokens 128, components 1024) to keep the download small. Code that uses image pixel coordinates must scale by the texture's real size (see `TrackView.source_rect`).
+- In the browser there are no system fonts, so UI text must stay within what the default font has (Latin, `·`, `×`, `—`, `…`): no ▶ ✓ ☠ or arrows.
+- `scripts/ui/web_replays.gd` replaces the desktop replay file dialog and folder with a browser file picker and a download, and opens `?replay=<url>` links. `.dwreplay` files committed to `replays/` are copied into the site so they can be shared as `?replay=replays/<file>.dwreplay`.
+- Local build: `python3 tools/fetch_web_templates.py 4.3`, then `godot --headless --export-release "Web" build/web/index.html`, and serve `build/web` with any static server.
+
 ## Getting the assets on a new machine
 
 The images live in `assets/` in the repository. If they're ever missing, copy your backup `assets` folder into the project root. To download them again from scratch:

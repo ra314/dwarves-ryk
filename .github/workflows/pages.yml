@@ -1,0 +1,75 @@
+# Builds the HTML5 export and publishes it to GitHub Pages.
+# One-time setup: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: Publish web build
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot and web templates
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-web
+
+      - name: Install Godot and web templates
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip -d ~/godot
+          mv ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 ~/godot/godot
+          python3 tools/fetch_web_templates.py "$GODOT_VERSION"
+
+      - name: Import assets
+        run: ~/godot/godot --headless --import
+
+      - name: Run tests
+        run: |
+          ~/godot/godot --headless -s addons/gut/gut_cmdln.gd | tee gut.log
+          grep -q "All tests passed" gut.log
+
+      - name: Export for the web
+        run: |
+          mkdir -p build/web
+          ~/godot/godot --headless --export-release "Web" build/web/index.html
+          test -s build/web/index.wasm
+          # Replays committed to replays/ can be shared as index.html?replay=replays/<file>
+          if ls replays/*.dwreplay >/dev/null 2>&1; then mkdir -p build/web/replays && cp replays/*.dwreplay build/web/replays/; fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    # Pages only accepts deployments from the default branch.
+    if: github.ref_name == github.event.repository.default_branch
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

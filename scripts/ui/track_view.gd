@@ -4,7 +4,10 @@ extends Control
 ## the current cell. Cells snake four per row, left-to-right then right-to-left,
 ## matching spawn_per_cell in game_data.json.
 
-## Grid area of components/turn_track.jpg (1016x1961), and its cell centres.
+## Grid area of components/turn_track.jpg and its cell centres, in the pixels of
+## the original 1016x1961 image. The imported texture may be smaller (import
+## size limit), so the crop is scaled to the texture's real size when drawn.
+const SOURCE_SIZE := Vector2(1016, 1961)
 const CROP := Rect2(190, 520, 636, 1262)
 const COL_X := [271.0, 428.0, 585.0, 742.0]
 const ROW_Y := [600.0, 757.0, 914.0, 1071.0, 1228.0, 1385.0, 1542.0, 1699.0]
@@ -31,6 +34,12 @@ func show_index(i: int, spawn) -> void:
 	queue_redraw()
 
 
+## The grid's crop in the texture's own pixels.
+static func source_rect(texture_size: Vector2) -> Rect2:
+	var s := texture_size / SOURCE_SIZE
+	return Rect2(CROP.position * s, CROP.size * s)
+
+
 static func cell_centre(i: int) -> Vector2:
 	var row := i / 4
 	var col := i % 4 if row % 2 == 0 else 3 - i % 4
@@ -41,7 +50,7 @@ func _draw() -> void:
 	var dest := Rect2(Vector2.ZERO, size)
 	var k := size.x / CROP.size.x
 	if texture != null:
-		draw_texture_rect_region(texture, dest, CROP)
+		draw_texture_rect_region(texture, dest, source_rect(texture.get_size()))
 	else:
 		draw_rect(dest, Color("5d7f95"))
 	var c := (cell_centre(index) - CROP.position) * k
