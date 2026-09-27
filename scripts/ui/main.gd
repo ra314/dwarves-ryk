@@ -30,6 +30,16 @@ var players_box: VBoxContainer
 var track_view: TrackView
 var titles_grid: GridContainer
 var log_view: RichTextLabel
+## Every game is recorded to a replay file as it's played (see ReplayLog).
+var recorder := ReplayLog.new()
+## Watching a replay: the live game is set aside and restored on exit.
+var replay_mode := false
+var replay_bar: ReplayViewer
+var replay_dialog: FileDialog
+var _stashed_state: GameState
+var _stashed_history: Array[Dictionary] = []
+var undo_row: HBoxContainer
+
 ## Enemy turn replay (optional, remembered in SETTINGS_PATH).
 var animate_enemy_turn := true
 var animating := false
@@ -98,8 +108,26 @@ func _build_ui() -> void:
 	top.add_child(_button("Save", _save))
 	top.add_child(_button("Load", _load))
 	top.add_child(_button("Fullscreen (F11)", _toggle_fullscreen))
+	var replays := MenuButton.new()
+	replays.text = "Replays"
+	replays.flat = false
+	replays.tooltip_text = "Every game is recorded. Share a .%s file from the replays folder;\nanyone with the game can watch it here." % ReplayLog.EXTENSION
+	replays.get_popup().add_item("Watch a replay…", 0)
+	replays.get_popup().add_item("Open the replays folder", 1)
+	replays.get_popup().id_pressed.connect(func(id):
+		if id == 0:
+			replay_dialog.current_dir = ProjectSettings.globalize_path(ReplayLog.DIR)
+			replay_dialog.popup_centered_ratio(0.7)
+		else:
+			DirAccess.make_dir_recursive_absolute(ReplayLog.DIR)
+			OS.shell_open(ProjectSettings.globalize_path(ReplayLog.DIR)))
+	top.add_child(replays)
 
-	var undo_row := HBoxContainer.new()
+	replay_bar = ReplayViewer.new(self)
+	replay_bar.visible = false
+	side.add_child(replay_bar)
+
+	undo_row = HBoxContainer.new()
 	side.add_child(undo_row)
 	undo_button = _button("Undo", _undo)
 	undo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -171,6 +199,13 @@ func _build_ui() -> void:
 	confirm = ConfirmationDialog.new()
 	confirm.confirmed.connect(func(): confirm_action.call())
 	add_child(confirm)
+	replay_dialog = FileDialog.new()
+	replay_dialog.title = "Watch a replay"
+	replay_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	replay_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	replay_dialog.filters = PackedStringArray(["*.%s ; Dwarves replays" % ReplayLog.EXTENSION])
+	replay_dialog.file_selected.connect(enter_replay)
+	add_child(replay_dialog)
 
 	# Enemy turn replay: flying tokens, an input blocker with Skip, and a banner.
 	fx_layer = Control.new()
@@ -240,15 +275,22 @@ func _new_game() -> void:
 	_shown_round = -1
 	_build_board()
 	_log_events(ev)
+	_start_recording()
 	_refresh()
 
 
+func _start_recording() -> void:
+	recorder.start(engine.state)
+	engine.meta["replay"] = ""
+
+
 func _undo() -> void:
-	if animating:
+	if animating or replay_mode:
 		return
 	var entry := engine.undo()
 	if entry.is_empty():
 		return
+	recorder.undo()
 	selected.clear()
 	_cancel_target()
 	_log("[color=gray]Undone: %s[/color]" % entry["label"])
@@ -256,11 +298,16 @@ func _undo() -> void:
 
 
 func _save() -> void:
+	if replay_mode:
+		return
+	engine.meta["replay"] = recorder.path
 	var err := engine.save_to(SAVE_PATH)
 	_log("Saved." if err == OK else "[color=red]Save failed (%s).[/color]" % error_string(err))
 
 
 func _load() -> void:
+	if replay_mode:
+		exit_replay()
 	var err := engine.load_from(SAVE_PATH)
 	if err != OK:
 		_log("[color=red]Load failed (%s).[/color]" % error_string(err))
@@ -271,11 +318,14 @@ func _load() -> void:
 	selected.clear()
 	_build_board()
 	_log("Loaded.")
+	# Carry on the same replay if it's still there, else start one from here.
+	if not recorder.resume(engine.meta.get("replay", "")):
+		_start_recording()
 	_refresh()
 
 
 func _run(cmd: Command) -> void:
-	if animating:
+	if animating or replay_mode:
 		return
 	_cancel_target()
 	var r := engine.execute(cmd)
@@ -286,6 +336,7 @@ func _run(cmd: Command) -> void:
 	_log("[b]%s[/b]" % engine.undo_label())
 	selected.clear()
 	var events: Array = r["events"]
+	recorder.step(engine.undo_label(), cmd.player, events, engine.state)
 	if animate_enemy_turn and events.any(func(e): return e["type"] == "enemy_phase_started"):
 		_log_events(events, false)
 		await _replay_enemy_turn(engine.history.peek()["state"].copy(), events)
@@ -362,6 +413,71 @@ func _refresh() -> void:
 	else:
 		undo_button.text = "Undo" if engine.undo_label() == "" else "Undo (locked after a reveal)"
 	_refresh_players()
+
+
+# --- Watching replays ------------------------------------------------------------
+
+func enter_replay(file: String) -> void:
+	var r := ReplayLog.read(file)
+	if r["error"] != "":
+		_error(r["error"])
+		return
+	if not replay_mode:
+		_stashed_state = engine.state
+		_stashed_history = engine.history.entries.duplicate()
+	replay_mode = true
+	_cancel_target()
+	selected.clear()
+	undo_row.visible = false
+	replay_bar.visible = true
+	log_view.clear()
+	_log("[color=#e0c080]Watching %s (%s)[/color]" % [file.get_file(), ", ".join(r["players"])])
+	_shown_round = -1
+	replay_bar.open(r["frames"])
+
+
+func exit_replay() -> void:
+	if not replay_mode:
+		return
+	replay_bar.playing = false
+	replay_mode = false
+	engine.state = _stashed_state
+	engine.history.entries = _stashed_history
+	replay_bar.visible = false
+	undo_row.visible = true
+	acting = 0
+	selected.clear()
+	log_view.clear()
+	_log("[color=gray]Back to your game.[/color]")
+	_shown_round = -1
+	_refresh()
+
+
+## Shows one recorded frame. append_log: add just this step's lines to the log;
+## otherwise rebuild the log from the start up to this frame.
+func show_replay_frame(frames: Array, i: int, append_log: bool) -> void:
+	var f: Dictionary = frames[i]
+	engine.state = f["state"].copy()
+	if f["player"] >= 0:
+		acting = f["player"]
+	if not append_log:
+		log_view.clear()
+		for j in range(1, i + 1):
+			_log_frame(frames[j])
+	elif i > 0:
+		_log_frame(f)
+	_refresh()
+
+
+func _log_frame(f: Dictionary) -> void:
+	_log("[b]%s[/b]" % f["label"])
+	_log_events(f["events"], false)
+
+
+## Plays the enemy turn inside a recorded step, if there is one and animation is on.
+func show_replay_step(from: Dictionary, to: Dictionary) -> void:
+	if animate_enemy_turn and to["events"].any(func(e): return e["type"] == "enemy_phase_started"):
+		await _replay_enemy_turn(from["state"].copy(), to["events"])
 
 
 ## Draws the tiles and turn track from a state: the real one, or the enemy turn
@@ -531,7 +647,7 @@ func _refresh_players() -> void:
 			head.add_child(thumb)
 		var done := Button.new()
 		done.text = "Done" if not p.done else "✓ done"
-		done.disabled = engine.check(MarkDoneCommand.new(p.index)) != ""
+		done.disabled = replay_mode or engine.check(MarkDoneCommand.new(p.index)) != ""
 		done.pressed.connect(func(): _run(MarkDoneCommand.new(p.index)))
 		head.add_child(done)
 
@@ -643,6 +759,9 @@ func _set_acting(i: int) -> void:
 
 
 func _toggle_die(on: bool, player: int, id: int) -> void:
+	if replay_mode:
+		_refresh()
+		return
 	if player != acting:
 		acting = player
 		selected.clear()
@@ -656,7 +775,7 @@ func _toggle_die(on: bool, player: int, id: int) -> void:
 # --- Tile menu ------------------------------------------------------------------------
 
 func _on_tile_clicked(pos: Vector2i) -> void:
-	if animating:
+	if animating or replay_mode:
 		return
 	if target_step.is_valid():
 		var step := target_step

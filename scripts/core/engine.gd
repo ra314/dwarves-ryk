@@ -10,6 +10,8 @@ var rules: Rules
 var state: GameState
 var history := UndoHistory.new()
 var unlimited_undo: bool
+## Saved and loaded with the game; the UI keeps the replay file's path here.
+var meta: Dictionary = {}
 
 
 func _init(game_data: GameData = null) -> void:
@@ -25,6 +27,7 @@ func new_game(players: int, seed: int = -1) -> Array:
 	else:
 		rng.randomize()
 	history.clear()
+	meta = {}
 	state = GameState.create(data, players, rng)
 	var ev: Array = [Rules.event("game_started", {"players": players})]
 	rules.begin_round(state, ev)
@@ -76,7 +79,7 @@ func save_to(path: String) -> Error:
 	if f == null:
 		return FileAccess.get_open_error()
 	var d := {"version": 1, "state": state.to_dict(), "rng_state": str(rng.state), "rng_seed": str(rng.seed),
-		"unlimited_undo": unlimited_undo}
+		"unlimited_undo": unlimited_undo, "meta": meta}
 	f.store_string(JSON.stringify(d))
 	return OK
 
@@ -92,6 +95,7 @@ func load_from(path: String) -> Error:
 	rng.seed = int(d["rng_seed"])
 	rng.state = int(d["rng_state"])
 	unlimited_undo = bool(d.get("unlimited_undo", false))
+	meta = d.get("meta", {})
 	history.clear()
 	return OK
 

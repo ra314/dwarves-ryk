@@ -8,6 +8,14 @@ var main
 func before_each() -> void:
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child_autofree(main)
+	main.recorder.dir = "user://test_replays"  # keep tests out of the real replays folder
+
+
+func after_each() -> void:
+	var d := DirAccess.open("user://test_replays")
+	if d:
+		for f in d.get_files():
+			d.remove(f)
 
 
 func _board_key(s: GameState) -> Array:

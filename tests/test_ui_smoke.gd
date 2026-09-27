@@ -7,6 +7,14 @@ var main
 func before_each() -> void:
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child_autofree(main)
+	main.recorder.dir = "user://test_replays"  # keep tests out of the real replays folder
+
+
+func after_each() -> void:
+	var d := DirAccess.open("user://test_replays")
+	if d:
+		for f in d.get_files():
+			d.remove(f)
 
 
 func test_scene_builds_board_and_trays() -> void:
@@ -152,3 +160,30 @@ func test_title_hover_is_from_acting_players_view() -> void:
 	assert_string_contains(tip, "Red must agree")
 	assert_string_contains(tip, "Taking it returns your Workmaster")
 	assert_string_contains(tip, "Bodyguard (7+) · single die")
+
+
+func test_record_then_watch_replay_and_exit() -> void:
+	main.recorder.dir = "user://test_replays"
+	main.animate_enemy_turn = false
+	main._run(MoveCommand.new(0, Vector2i(1, 2)))
+	main._run(MoveCommand.new(1, Vector2i(2, 3)))
+	main._undo()
+	main._run(MoveCommand.new(1, Vector2i(1, 2)))
+	var live: Dictionary = main.engine.state.to_dict()
+	var path: String = main.recorder.path
+	assert_ne(path, "")
+	main.enter_replay(path)
+	assert_true(main.replay_mode)
+	assert_eq(main.replay_bar.frames.size(), 3, "start + 2 moves; the undone move is gone")
+	assert_eq(main.engine.state.players[0].pos, Vector2i(1, 3), "frame 0 is the setup")
+	main._run(MoveCommand.new(0, Vector2i(1, 2)))  # ignored while watching
+	assert_eq(main.engine.state.players[0].pos, Vector2i(1, 3))
+	main.replay_bar.go_to(1)
+	assert_eq(main.engine.state.players[0].pos, Vector2i(1, 2))
+	main.replay_bar.go_to(2)
+	assert_eq(main.engine.state.players[1].pos, Vector2i(1, 2))
+	main.exit_replay()
+	assert_false(main.replay_mode)
+	assert_eq(main.engine.state.to_dict(), live, "your game is back as it was")
+	assert_true(main.engine.can_undo(), "and so is its undo history")
+	DirAccess.remove_absolute(path)
