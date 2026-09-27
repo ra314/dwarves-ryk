@@ -31,6 +31,7 @@ static func load_from_file(path: String) -> GameData:
 
 
 func _init_from(d: Dictionary) -> void:
+	d = _ints(d)
 	raw = d
 	limits = d["limits"]
 	rule_decisions = d["rule_decisions"]
@@ -39,6 +40,21 @@ func _init_from(d: Dictionary) -> void:
 		tiles_by_id[t["id"]] = t
 	for t in d["titles"]:
 		titles_by_id[t["id"]] = t
+
+
+## JSON has no integer type, so Godot parses every number as a float and it
+## prints as "1.0". Every number in the data is a whole number; make them ints.
+static func _ints(v):
+	if v is float and v == floorf(v):
+		return int(v)
+	if v is Dictionary:
+		var out := {}
+		for k in v:
+			out[k] = _ints(v[k])
+		return out
+	if v is Array:
+		return v.map(func(x): return _ints(x))
+	return v
 
 
 func limit(key: String) -> int:
