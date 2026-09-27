@@ -46,21 +46,27 @@ func test_target_mode_waits_for_a_tile() -> void:
 	assert_eq(main.engine.state.tile_at(Vector2i(1, 2)).id, "mine")
 
 
-## Presses the item whose text starts with prefix, as Godot does: by the item's id.
-func _press(prefix: String) -> void:
-	for i in main.menu.item_count:
-		if main.menu.get_item_text(i).begins_with(prefix):
-			assert_false(main.menu.is_item_disabled(i), prefix)
-			main.menu.id_pressed.emit(main.menu.get_item_id(i))
+## Presses the item whose text starts with prefix the way Godot does: emits
+## id_pressed with the item's id, then hides the menu (hide_on_item_selection).
+func _press(prefix: String, m: PopupMenu = null) -> void:
+	if m == null:
+		m = main.menu
+	for i in m.item_count:
+		if m.get_item_text(i).begins_with(prefix):
+			assert_false(m.is_item_disabled(i), prefix)
+			m.id_pressed.emit(m.get_item_id(i))
+			if m.hide_on_item_selection:
+				m.hide()
+			await get_tree().process_frame  # deferred popups open here
 			return
-	fail_test("no menu item starting '%s'" % prefix)
+	fail_test("no menu item starting '%s' in %s" % [prefix, range(m.item_count).map(func(j): return m.get_item_text(j))])
 
 
 func test_pressing_a_menu_item_runs_that_item() -> void:
 	var s: GameState = main.engine.state
 	s.tile_at(Vector2i(1, 3)).warriors = 2
 	main._on_tile_clicked(Vector2i(1, 2))  # Barracks: heading, Move, Move carrying 1, Move carrying 2, ...
-	_press("Move here carrying 2")
+	await _press("Move here carrying 2")
 	assert_eq(main.engine.state.players[0].pos, Vector2i(1, 2))
 	assert_eq(main.engine.state.tile_at(Vector2i(1, 2)).warriors, 2)
 
@@ -80,8 +86,9 @@ func test_choice_popup_runs_chosen_option() -> void:
 	d6["value"] = 1
 	main.selected = [int(spend["id"])]
 	main._on_tile_clicked(smith)
-	_press("Promote Worker")
-	_press("d6")  # second option in "Promote which die?"
+	await _press("Promote Worker")
+	assert_true(main.choice_menu.visible, "the die list must still be open after the tile menu closes")
+	await _press("d6", main.choice_menu)
 	assert_eq(main.engine.state.players[0].pending.map(func(d): return d["type"]), ["d8"])
 
 

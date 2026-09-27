@@ -40,6 +40,11 @@ var blocker: Control
 var banner: PanelContainer
 var banner_label: Label
 var menu: PopupMenu
+## Follow-up picks (which die, which title) get their own popup: Godot hides a
+## PopupMenu after running the picked item's action, so reusing `menu` would
+## close the new list as soon as it opened.
+var choice_menu: PopupMenu
+var choice_actions: Array[Callable] = []
 var menu_actions: Array[Callable] = []
 var confirm: ConfirmationDialog
 var confirm_action: Callable
@@ -160,6 +165,9 @@ func _build_ui() -> void:
 	menu = PopupMenu.new()
 	menu.id_pressed.connect(func(id): menu_actions[id].call())
 	add_child(menu)
+	choice_menu = PopupMenu.new()
+	choice_menu.id_pressed.connect(func(id): choice_actions[id].call())
+	add_child(choice_menu)
 	confirm = ConfirmationDialog.new()
 	confirm.confirmed.connect(func(): confirm_action.call())
 	add_child(confirm)
@@ -806,13 +814,15 @@ func _cancel_target() -> void:
 
 
 func _choose(title: String, options: Array, then: Callable) -> void:
-	menu.clear()
-	menu_actions.clear()
-	menu.add_separator(title)
+	choice_menu.clear()
+	choice_actions.clear()
+	choice_menu.add_separator(title)
 	for i in options.size():
-		_add_entry(options[i], false, then.bind(i))
-	menu.reset_size()
-	menu.popup_centered()
+		choice_menu.add_item(options[i], choice_actions.size())
+		choice_actions.append(then.bind(i))
+	choice_menu.reset_size()
+	# Open once the menu that led here has finished closing.
+	choice_menu.popup_centered.call_deferred()
 
 
 # --- Log ----------------------------------------------------------------------------------
