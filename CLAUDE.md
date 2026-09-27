@@ -76,7 +76,32 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 ## Status
 
 - Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R20); game data transcribed from the cards.
-- Next: milestone 1.
+- Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar.
+- Next: milestone 7 (animations beyond the tile flash, sound, a settings screen, more save slots).
+
+### Where things are
+
+- `rules.gd` holds the effect handlers (`effects` maps effect id → check/apply), combat, wounds, surges and the Enemy Phase. Commands in `commands/` validate the player-side parts and call into it.
+- `engine.gd` runs the Enemy Phase when the last player is done. Any command during which `Rules.revealed` gets set is stored as a checkpoint in `undo_history.gd`.
+- `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
+- UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.
+
+### Provisional interpretations (confirm with the owner, then add as R#)
+
+The spec doesn't settle these; the engine does the following for now:
+
+1. **Garrison is unreachable.** §5.8 protects nobles only on an *unblocked* Watchtower, but any enemy on the tile blocks it (§5.1, R10), so the passive never applies. Implemented literally (see `Rules.resolve_board`). If Garrison should work, exempt it from blocking.
+2. **Title dice (d10, d12) join from the next round**, like R14/R20.
+3. **Tough, "the same enemy"**: a Tough noble isn't wounded again on the same tile this round unless the enemy count there rises. Moving, or enemies moving, resets this.
+4. **Discover the Path** can only be used while standing on that Empty Halls. Entering another Empty Halls makes you lost again.
+5. **Solo title swap**: at the 2-title limit you choose which title to return (the UI asks).
+6. **Minecart** (Master Miner) ignores whether either Mine is blocked.
+
+## Running and testing
+
+- Tests: `godot --headless --import` once, then `godot --headless -s addons/gut/gut_cmdln.gd` (config in `.gutconfig.json`; GUT 9.3.0 is vendored in `addons/gut`).
+- Text-only random game: `godot --headless -s res://tools/debug_game.gd -- <players> <seed>`.
+- Without `assets/`, tiles are drawn as labelled colour blocks.
 
 ## Getting the assets on a new machine
 

@@ -89,7 +89,7 @@ func die_value_at(p: PlayerState, die: Dictionary, tile: TileState) -> int:
 ## Checks the dice chosen for an action meet its minimum (§5.1, §5.2).
 func check_dice(p: PlayerState, die_ids: Array, min_value: int, single_die: bool, tile: TileState) -> String:
 	if die_ids.is_empty():
-		return "Choose at least one die."
+		return "Select at least one die."
 	var seen := {}
 	var total := 0
 	for id in die_ids:

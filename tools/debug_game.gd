@@ -19,6 +19,6 @@ func _init() -> void:
 		var cmds := RandomPlayer.legal_commands(engine)
 		var cmd: Command = cmds[pick.randi_range(0, cmds.size() - 1)]
 		var res := engine.execute(cmd)
-		print("  ", cmd.describe(engine.state, engine.rules) if res["ok"] else res["error"])
+		print("  ", engine.undo_label() if res["ok"] else res["error"])
 	print("\n", DebugView.render(engine.state, engine.data))
 	quit()
