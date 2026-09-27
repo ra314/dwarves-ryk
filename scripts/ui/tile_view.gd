@@ -39,7 +39,35 @@ func show_state(t: TileState, tile_name: String, tex: Texture2D, noble_colours: 
 	label = tile_name
 	texture = tex
 	nobles = noble_colours
+	tooltip_text = _describe()  # non-empty, so hovering shows the zoomed card
 	queue_redraw()
+
+
+func _describe() -> String:
+	var parts := ["%s (%s%d)" % [label, char(65 + pos.x), pos.y + 1]]
+	if tile.enemies > 0:
+		parts.append("%d enem%s" % [tile.enemies, "y" if tile.enemies == 1 else "ies"])
+	if tile.warriors > 0:
+		parts.append("%d warrior%s" % [tile.warriors, "" if tile.warriors == 1 else "s"])
+	if not nobles.is_empty():
+		parts.append("Nobles: " + ", ".join(nobles))
+	return " · ".join(parts)
+
+
+## Hover: the tile's art at a readable size, with what's on it underneath.
+func _make_custom_tooltip(for_text: String) -> Object:
+	var box := VBoxContainer.new()
+	if texture != null:
+		var big := TextureRect.new()
+		big.texture = texture
+		big.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		big.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		big.custom_minimum_size = Vector2(420, 420)
+		box.add_child(big)
+	var l := Label.new()
+	l.text = for_text
+	box.add_child(l)
+	return box
 
 
 func pulse() -> void:
