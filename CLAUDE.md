@@ -77,7 +77,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 
 - Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R26); game data transcribed from the cards.
 - Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar. The layout is a fixed 1600×960 that scales to the window, keeping its aspect (`canvas_items` + `keep` stretch in `project.godot`); F11 or the top-bar button toggles fullscreen.
-- Next: milestone 7 (animations beyond the tile flash, sound, a settings screen, more save slots).
+- Next: rest of milestone 7 (sound, a settings screen, more save slots). The enemy turn replay is done.
 
 ### Where things are
 
@@ -87,6 +87,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 - `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
 - UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.
 - UI pieces in `scripts/ui/`: `tile_view.gd` (board spaces), `dice_view.gd` (drawn dice, also blank mini dice for reserves), `track_view.gd` (turn-track art with the marker; cell positions are measured from `turn_track.jpg`), `card_thumb.gd` (title cards, full size on hover), `stat_chip.gd` + `icon_glyph.gd` (icon + value chips; resources and moves have drawn icons since the art has none). `assets/tokens/turn_marker.png` is the publisher logo, so the marker is drawn instead.
+- `enemy_turn_animator.gd` replays the Enemy Phase from its events on a copy of the board taken before the command (banner per step, flying enemy tokens, Skip/Space/Esc). The engine state is already final; the screen redraws from it afterwards. `tests/test_enemy_replay.gd` checks the replayed board ends equal to the real one, so a new event type that changes the board needs a case in `EnemyTurnAnimator._apply`. The toggle is saved in `user://settings.cfg`.
 
 ## Running and testing
 

@@ -4,6 +4,7 @@ extends Control
 ## then click a tile for the moves and actions available there.
 
 const SAVE_PATH := "user://save.json"
+const SETTINGS_PATH := "user://settings.cfg"
 const MARGIN := 10
 const TILE_GAP := 4
 ## Tiles fill the full height of the 960px-tall layout.
@@ -29,6 +30,15 @@ var players_box: VBoxContainer
 var track_view: TrackView
 var titles_grid: GridContainer
 var log_view: RichTextLabel
+## Enemy turn replay (optional, remembered in SETTINGS_PATH).
+var animate_enemy_turn := true
+var animating := false
+var animator: EnemyTurnAnimator
+var animate_check: CheckBox
+var fx_layer: Control
+var blocker: Control
+var banner: PanelContainer
+var banner_label: Label
 var menu: PopupMenu
 var menu_actions: Array[Callable] = []
 var confirm: ConfirmationDialog
@@ -36,6 +46,8 @@ var confirm_action: Callable
 
 
 func _ready() -> void:
+	_load_settings()
+	animator = EnemyTurnAnimator.new(self)
 	_build_ui()
 	_new_game()
 
@@ -93,6 +105,12 @@ func _build_ui() -> void:
 	unlimited_check.text = "Unlimited undo"
 	unlimited_check.toggled.connect(func(on): engine.unlimited_undo = on; _refresh())
 	undo_row.add_child(unlimited_check)
+	animate_check = CheckBox.new()
+	animate_check.text = "Animate enemy turn"
+	animate_check.button_pressed = animate_enemy_turn
+	animate_check.tooltip_text = "Replay the Enemy Phase step by step. Space or Esc skips."
+	animate_check.toggled.connect(func(on): animate_enemy_turn = on; _save_settings())
+	undo_row.add_child(animate_check)
 
 	# Turn track art on the left; status, prompts and the title cards beside it.
 	var info_row := HBoxContainer.new()
@@ -146,6 +164,35 @@ func _build_ui() -> void:
 	confirm.confirmed.connect(func(): confirm_action.call())
 	add_child(confirm)
 
+	# Enemy turn replay: flying tokens, an input blocker with Skip, and a banner.
+	fx_layer = Control.new()
+	fx_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fx_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fx_layer)
+	blocker = Control.new()
+	blocker.set_anchors_preset(Control.PRESET_FULL_RECT)
+	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
+	blocker.visible = false
+	add_child(blocker)
+	var skip_button := _button("Skip ▶▶  (Space)", func(): animator.skip = true)
+	skip_button.position = Vector2(MARGIN + 8, 960 - MARGIN - 48)
+	blocker.add_child(skip_button)
+	banner = PanelContainer.new()
+	var bs := StyleBoxFlat.new()
+	bs.bg_color = Color(0.08, 0.06, 0.05, 0.9)
+	bs.border_color = Color("b02020")
+	bs.set_border_width_all(2)
+	bs.set_corner_radius_all(6)
+	bs.set_content_margin_all(14)
+	banner.add_theme_stylebox_override("panel", bs)
+	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner.visible = false
+	banner_label = Label.new()
+	banner_label.add_theme_font_size_override("font_size", 26)
+	banner_label.add_theme_color_override("font_color", Color("f2ead8"))
+	banner.add_child(banner_label)
+	add_child(banner)
+
 
 func _label(text: String) -> Label:
 	var l := Label.new()
@@ -189,6 +236,8 @@ func _new_game() -> void:
 
 
 func _undo() -> void:
+	if animating:
+		return
 	var entry := engine.undo()
 	if entry.is_empty():
 		return
@@ -218,6 +267,8 @@ func _load() -> void:
 
 
 func _run(cmd: Command) -> void:
+	if animating:
+		return
 	_cancel_target()
 	var r := engine.execute(cmd)
 	if not r["ok"]:
@@ -225,9 +276,22 @@ func _run(cmd: Command) -> void:
 		return
 	prompt_label.text = ""
 	_log("[b]%s[/b]" % engine.undo_label())
-	_log_events(r["events"])
 	selected.clear()
+	var events: Array = r["events"]
+	if animate_enemy_turn and events.any(func(e): return e["type"] == "enemy_phase_started"):
+		_log_events(events, false)
+		await _replay_enemy_turn(engine.history.peek()["state"].copy(), events)
+	else:
+		_log_events(events)
 	_refresh()
+
+
+func _replay_enemy_turn(before: GameState, events: Array) -> void:
+	animating = true
+	blocker.visible = true
+	await animator.play(before, events)
+	blocker.visible = false
+	animating = false
 
 
 func _error(msg: String) -> void:
@@ -236,6 +300,10 @@ func _error(msg: String) -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if animating:
+		if e is InputEventKey and e.pressed and e.keycode in [KEY_SPACE, KEY_ESCAPE]:
+			animator.skip = true
+		return
 	if e is InputEventKey and e.pressed and e.keycode == KEY_Z and e.ctrl_pressed:
 		_undo()
 	elif e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
@@ -256,14 +324,7 @@ func _toggle_fullscreen() -> void:
 func _refresh() -> void:
 	var s := engine.state
 	var d := engine.data
-	for tv in tile_views:
-		var t := s.tile_at(tv.pos)
-		var nobles := s.nobles_at(tv.pos).map(func(p): return p.colour)
-		tv.details = _tile_details(t, tv.pos)
-		tv.show_state(t, _tile_name(t), _texture_for(t), nobles)
-		var me := s.players[acting]
-		tv.highlight = TileView.NOBLE_COLOURS[me.colour] if me.on_board and me.pos == tv.pos else Color(0, 0, 0, 0)
-		tv.queue_redraw()
+	draw_board(s)
 
 	var spawn = d.spawn_per_cell()[s.turn_index]
 	for c in status_flow.get_children():
@@ -285,7 +346,6 @@ func _refresh() -> void:
 	status_flow.add_child(spawn_label)
 	if s.result != "":
 		_error("%s %s" % ["You win!" if s.result == "won" else "You lose.", s.end_reason])
-	track_view.show_index(s.turn_index, spawn)
 	_refresh_titles()
 
 	undo_button.disabled = not engine.can_undo()
@@ -294,6 +354,80 @@ func _refresh() -> void:
 	else:
 		undo_button.text = "Undo" if engine.undo_label() == "" else "Undo (locked after a reveal)"
 	_refresh_players()
+
+
+## Draws the tiles and turn track from a state: the real one, or the enemy turn
+## replay's display copy.
+func draw_board(s: GameState) -> void:
+	for tv in tile_views:
+		var t := s.tile_at(tv.pos)
+		var nobles := s.nobles_at(tv.pos).map(func(p): return p.colour)
+		tv.details = _tile_details(t, tv.pos)
+		tv.show_state(t, _tile_name(t), _texture_for(t), nobles)
+		var me := s.players[acting]
+		tv.highlight = TileView.NOBLE_COLOURS[me.colour] if me.on_board and me.pos == tv.pos else Color(0, 0, 0, 0)
+		tv.queue_redraw()
+	track_view.show_index(s.turn_index, engine.data.spawn_per_cell()[s.turn_index])
+
+
+## Shows a step of the enemy turn over the board, at the top or bottom edge,
+## whichever is further from the tile the step is about.
+func show_banner(text: String, focus: Vector2i = PlayerState.NO_TILE) -> void:
+	banner_label.text = text
+	banner.visible = true
+	banner.reset_size()
+	var r := board.get_global_rect()
+	var at_bottom := focus != PlayerState.NO_TILE and focus.y <= 1
+	var y := r.end.y - banner.size.y - 24 if at_bottom else r.position.y + 24
+	banner.position = Vector2(r.get_center().x - banner.size.x / 2, y)
+
+
+func hide_banner() -> void:
+	banner.visible = false
+
+
+## Flies enemy tokens from tile to tile, all at once. moves: enemy_moved events.
+func fly_enemies(moves: Array, seconds: float) -> void:
+	var icon := _cached_texture("tokens/enemy.png")
+	var tween := create_tween().set_parallel(true)
+	var sprites := []
+	for m in moves:
+		var from: TileView = tile_views[m["from"].y * 5 + m["from"].x]
+		var to: TileView = tile_views[m["to"].y * 5 + m["to"].x]
+		var token := TextureRect.new()
+		token.texture = icon
+		token.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		token.custom_minimum_size = Vector2(46, 46)
+		token.size = Vector2(46, 46)
+		var badge := Label.new()
+		badge.text = str(m["count"])
+		badge.add_theme_color_override("font_color", Color.WHITE)
+		badge.add_theme_color_override("font_outline_color", Color("b02020"))
+		badge.add_theme_constant_override("outline_size", 6)
+		badge.position = Vector2(34, 26)
+		token.add_child(badge)
+		var start := from.get_global_rect().get_center() - token.size / 2
+		var end := to.get_global_rect().get_center() - token.size / 2
+		token.position = start
+		fx_layer.add_child(token)
+		sprites.append(token)
+		tween.tween_property(token, "position", end, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+	for t in sprites:
+		t.queue_free()
+
+
+func _load_settings() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SETTINGS_PATH) == OK:
+		animate_enemy_turn = bool(cfg.get_value("ui", "animate_enemy_turn", true))
+
+
+func _save_settings() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SETTINGS_PATH)
+	cfg.set_value("ui", "animate_enemy_turn", animate_enemy_turn)
+	cfg.save(SETTINGS_PATH)
 
 
 ## Hover text for a tile: its passives as they stand now, and each action with the
@@ -514,6 +648,8 @@ func _toggle_die(on: bool, player: int, id: int) -> void:
 # --- Tile menu ------------------------------------------------------------------------
 
 func _on_tile_clicked(pos: Vector2i) -> void:
+	if animating:
+		return
 	if target_step.is_valid():
 		var step := target_step
 		target_step = Callable()
@@ -689,11 +825,13 @@ func _colour(i: int) -> String:
 	return engine.state.players[i].colour
 
 
-func _log_events(events: Array) -> void:
+func _log_events(events: Array, pulse: bool = true) -> void:
 	for e in events:
 		var line := _event_text(e)
 		if line != "":
 			_log("  " + line)
+		if not pulse:
+			continue
 		for key in ["pos", "to"]:
 			if e.has(key) and e[key] is Vector2i and engine.state.in_bounds(e[key]):
 				tile_views[e[key].y * engine.state.size + e[key].x].pulse()
