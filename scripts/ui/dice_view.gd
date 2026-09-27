@@ -23,12 +23,15 @@ var body: Color = Color.WHITE
 var tilt: float = 0.0
 var nudge: Vector2 = Vector2.ZERO
 
+## A die in reserve: no rolled value, not clickable.
+var blank: bool = false
+
 var _rolling: float = 0.0   # 1 -> 0 while tumbling
 var _shown: int = 1
 
 
-func _init() -> void:
-	custom_minimum_size = Vector2(SIZE, SIZE)
+func _init(side: float = SIZE) -> void:
+	custom_minimum_size = Vector2(side, side)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 
@@ -49,6 +52,18 @@ func setup(type: String, v: int, is_used: bool, is_selected: bool, colour: Color
 	queue_redraw()
 
 
+## A small face-less die for the reserve and next-round displays.
+func setup_blank(type: String, colour: Color, seed_key: int) -> void:
+	die_type = type
+	blank = true
+	body = colour
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_key
+	tilt = r.randf_range(-0.3, 0.3)
+	queue_redraw()
+
+
 ## Tumble for a moment, flicking through faces, then land on the real value.
 func roll_in(delay: float = 0.0) -> void:
 	_rolling = 1.0
@@ -64,7 +79,7 @@ func _set_rolling(t: float) -> void:
 
 
 func _gui_input(e: InputEvent) -> void:
-	if used:
+	if used or blank:
 		return
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		selected = not selected
@@ -74,29 +89,31 @@ func _gui_input(e: InputEvent) -> void:
 
 
 func _draw() -> void:
-	var lift := 4.0 if selected else 0.0
-	var bounce := -sin(_rolling * PI) * 14.0
+	var k := minf(size.x, size.y) / SIZE
+	var lift := 4.0 * k if selected else 0.0
+	var bounce := -sin(_rolling * PI) * 14.0 * k
 	var c := size / 2 + nudge + Vector2(0, bounce - lift)
 	var angle := tilt + _rolling * TAU * 1.25
-	var r := SIZE * 0.36
+	var side := minf(size.x, size.y)
+	var r := side * 0.36
 	var ink := _ink()
 	var alpha := 0.38 if used else 1.0
 
 	# Shadow on the table, flattened, further away when lifted or bouncing.
-	var shadow_off := Vector2(4, 6) + Vector2(0, lift - bounce * 0.4)
+	var shadow_off := Vector2(4, 6) * k + Vector2(0, lift - bounce * 0.4)
 	draw_set_transform(size / 2 + nudge + shadow_off, angle, Vector2(1.0, 0.8))
 	draw_colored_polygon(_outline(r * 1.02), Color(0, 0, 0, 0.35 * alpha))
 
 	draw_set_transform(c, angle, Vector2.ONE)
 	if selected:
 		draw_polyline(_closed(_outline(r + 6)), Color(1, 0.85, 0.3, 0.9), 3.0, true)
-	var side := body.darkened(0.35)
+	var flank := body.darkened(0.35)
 	var face := body.lightened(0.12)
-	side.a = alpha
+	flank.a = alpha
 	face.a = alpha
 	var edge := body.darkened(0.6)
 	edge.a = alpha
-	draw_colored_polygon(_outline(r), side)
+	draw_colored_polygon(_outline(r), flank)
 	draw_colored_polygon(_face(r), face)
 	draw_polyline(_closed(_outline(r)), edge, 1.5, true)
 	draw_polyline(_closed(_face(r)), edge, 1.0, true)
@@ -105,13 +122,16 @@ func _draw() -> void:
 
 	# The rolled value, kept upright-ish so it stays readable.
 	ink.a = alpha
+	if blank:
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		return
 	if die_type == "d6":
 		for p in PIPS.get(_shown, []):
 			draw_circle(p * r * 0.42, r * 0.12, ink)
 	else:
 		draw_set_transform(c + _face_centre(r).rotated(angle), angle * 0.5, Vector2.ONE)
 		var font := get_theme_default_font()
-		var fs := 22 if _shown < 10 else 18
+		var fs := int((22 if _shown < 10 else 18) * k)
 		var text := str(_shown)
 		if _shown in [6, 9]:
 			text += "."

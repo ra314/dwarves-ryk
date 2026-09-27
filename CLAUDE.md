@@ -85,6 +85,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 - `engine.gd` runs the Enemy Phase when the last player is done. Any command during which `Rules.revealed` gets set is stored as a checkpoint in `undo_history.gd`.
 - `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
 - UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.
+- UI pieces in `scripts/ui/`: `tile_view.gd` (board spaces), `dice_view.gd` (drawn dice, also blank mini dice for reserves), `track_view.gd` (turn-track art with the marker; cell positions are measured from `turn_track.jpg`), `card_thumb.gd` (title cards, full size on hover), `stat_chip.gd` + `icon_glyph.gd` (icon + value chips; resources and moves have drawn icons since the art has none). `assets/tokens/turn_marker.png` is the publisher logo, so the marker is drawn instead.
 
 ## Running and testing
 

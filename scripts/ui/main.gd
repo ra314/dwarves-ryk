@@ -19,14 +19,15 @@ var _shown_round := -1             # dice tumble when a new round's roll is firs
 
 var tile_views: Array[TileView] = []
 var board: GridContainer
-var status_label: Label
+var status_flow: HFlowContainer
 var prompt_label: Label
 var cancel_button: Button
 var undo_button: Button
 var unlimited_check: CheckBox
 var players_spin: SpinBox
 var players_box: VBoxContainer
-var track_label: RichTextLabel
+var track_view: TrackView
+var titles_grid: GridContainer
 var log_view: RichTextLabel
 var menu: PopupMenu
 var menu_actions: Array[Callable] = []
@@ -93,12 +94,21 @@ func _build_ui() -> void:
 	unlimited_check.toggled.connect(func(on): engine.unlimited_undo = on; _refresh())
 	undo_row.add_child(unlimited_check)
 
-	status_label = _label("")
-	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	side.add_child(status_label)
+	# Turn track art on the left; status, prompts and the title cards beside it.
+	var info_row := HBoxContainer.new()
+	info_row.add_theme_constant_override("separation", 10)
+	side.add_child(info_row)
+	track_view = TrackView.new(_cached_texture(engine.data.raw["turn_track"]["image"]), 170)
+	info_row.add_child(track_view)
+	var info := VBoxContainer.new()
+	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_row.add_child(info)
+	status_flow = HFlowContainer.new()
+	status_flow.add_theme_constant_override("h_separation", 12)
+	info.add_child(status_flow)
 
 	var prompt_row := HBoxContainer.new()
-	side.add_child(prompt_row)
+	info.add_child(prompt_row)
 	prompt_label = _label("")
 	prompt_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -107,11 +117,14 @@ func _build_ui() -> void:
 	cancel_button.visible = false
 	prompt_row.add_child(cancel_button)
 
-	track_label = RichTextLabel.new()
-	track_label.bbcode_enabled = true
-	track_label.fit_content = true
-	track_label.scroll_active = false
-	side.add_child(track_label)
+	titles_grid = GridContainer.new()
+	titles_grid.columns = 3
+	titles_grid.add_theme_constant_override("h_separation", 8)
+	titles_grid.add_theme_constant_override("v_separation", 8)
+	titles_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	titles_grid.size_flags_vertical = Control.SIZE_SHRINK_END
+	info.add_child(titles_grid)
+
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -252,19 +265,27 @@ func _refresh() -> void:
 		tv.queue_redraw()
 
 	var spawn = d.spawn_per_cell()[s.turn_index]
-	status_label.text = "Round %d · %s · supply %d · enemies %d/%d · warriors %d/%d · ruins left %d · open tunnels %d" % [
-		s.round, PHASE_NAMES[s.phase], s.supply, s.enemies_on_board(), d.limit("max_enemy_tokens"),
-		s.warriors_on_board(), d.limit("max_warrior_tokens"), s.ruins_left(), s.open_tunnels()]
+	for c in status_flow.get_children():
+		c.queue_free()
+	var phase := _label("Round %d · %s" % [s.round, PHASE_NAMES[s.phase]])
+	phase.add_theme_color_override("font_color", Color("e0c080"))
+	status_flow.add_child(phase)
+	var spawn_label := _label("Next spawn: %s each" % ("—" if spawn == null else str(spawn)))
+	spawn_label.tooltip_text = "Enemies placed on every spawn point in the next Enemy Phase"
+	spawn_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	for chip in [
+		StatChip.make("resource", str(s.supply), "Resources left in the shared supply"),
+		StatChip.make(_cached_texture("tokens/enemy.png"), "%d/%d" % [s.enemies_on_board(), d.limit("max_enemy_tokens")], "Enemies on the board / token pool"),
+		StatChip.make(_cached_texture("tokens/warrior.png"), "%d/%d" % [s.warriors_on_board(), d.limit("max_warrior_tokens")], "Warriors on the board / token pool"),
+		StatChip.make(_cached_texture(d.ruins_back()["image"]), str(s.ruins_left()), "Ruins still to explore"),
+		StatChip.make(_cached_texture(d.tile("tunnel")["image"]), str(s.open_tunnels()), "Open tunnels"),
+	]:
+		status_flow.add_child(chip)
+	status_flow.add_child(spawn_label)
 	if s.result != "":
 		_error("%s %s" % ["You win!" if s.result == "won" else "You lose.", s.end_reason])
-
-	var cells := []
-	for i in d.spawn_per_cell().size():
-		var v = d.spawn_per_cell()[i]
-		var txt := "☠" if v == null else str(v)
-		cells.append("[b][bgcolor=#a0302a] %s [/bgcolor][/b]" % txt if i == s.turn_index else " %s " % txt)
-	track_label.text = "Turn track (enemies per spawn point):  " + "".join(cells) + \
-		("" if spawn == null else "   next spawn: %d each" % spawn)
+	track_view.show_index(s.turn_index, spawn)
+	_refresh_titles()
 
 	undo_button.disabled = not engine.can_undo()
 	if engine.can_undo():
@@ -336,10 +357,15 @@ func _refresh_players() -> void:
 		name_button.add_theme_color_override("font_color", TileView.NOBLE_COLOURS[p.colour])
 		name_button.pressed.connect(_set_acting.bind(p.index))
 		head.add_child(name_button)
-		var info := _label(_player_summary(p))
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		head.add_child(info)
+		var stats := HFlowContainer.new()
+		stats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stats.add_theme_constant_override("h_separation", 12)
+		head.add_child(stats)
+		_fill_player_stats(stats, p)
+		for t in p.titles:
+			var thumb := CardThumb.make(_cached_texture(engine.data.title(t)["image"]), 34,
+				"%s: %s" % [p.colour, engine.data.title(t)["name"]])
+			head.add_child(thumb)
 		var done := Button.new()
 		done.text = "Done" if not p.done else "✓ done"
 		done.disabled = engine.check(MarkDoneCommand.new(p.index)) != ""
@@ -368,16 +394,51 @@ func _refresh_players() -> void:
 			tray.add_child(_label("  selected: %d" % total))
 
 
-func _player_summary(p: PlayerState) -> String:
-	var parts := ["res %d" % p.resources]
+## Resources, moves, reserve dice and next-round dice as icon chips.
+func _fill_player_stats(stats: HFlowContainer, p: PlayerState) -> void:
+	var colour: Color = TileView.NOBLE_COLOURS[p.colour]
+	stats.add_child(StatChip.make("resource", str(p.resources), "Resources"))
 	if p.on_board:
-		parts.append("moves %d/%d" % [p.moves_used, engine.rules.movement_allowance(p)])
-	if not p.titles.is_empty():
-		parts.append(", ".join(p.titles.map(func(t): return engine.data.title(t)["name"])))
-	parts.append("reserve " + " ".join(p.reserve.keys().map(func(k): return "%s×%d" % [k, p.reserve[k]])))
-	if not p.pending.is_empty():
-		parts.append("next round +" + ",".join(p.pending.map(func(d): return d["type"])))
-	return " · ".join(parts)
+		var allowance := engine.rules.movement_allowance(p)
+		stats.add_child(StatChip.make("moves", "%d/%d" % [allowance - p.moves_used, allowance],
+			"Moves left this round / allowance"))
+	var reserve := HBoxContainer.new()
+	reserve.add_theme_constant_override("separation", 6)
+	reserve.tooltip_text = "Reserve: dice not in your active pool yet"
+	reserve.mouse_filter = Control.MOUSE_FILTER_PASS
+	for t in ["d4", "d6", "d8"]:
+		var n := int(p.reserve.get(t, 0))
+		if n > 0:
+			reserve.add_child(StatChip.make(_mini_die(t, colour.darkened(0.25), p.index), "×%d" % n, "%d %s in reserve" % [n, t]))
+	if reserve.get_child_count() > 0:
+		stats.add_child(reserve)
+	for d in p.pending:
+		stats.add_child(StatChip.make(_mini_die(d["type"], colour, p.index), "+", "%s joins your pool next round" % d["type"]))
+
+
+func _mini_die(type: String, colour: Color, seed_key: int) -> DiceView:
+	var dv := DiceView.new(32)
+	dv.setup_blank(type, colour, hash([type, seed_key]))
+	return dv
+
+
+## The six title cards: unclaimed ones bright, held ones dimmed with the holder's colour.
+func _refresh_titles() -> void:
+	for c in titles_grid.get_children():
+		c.queue_free()
+	var s := engine.state
+	for id in engine.data.title_ids():
+		var info := engine.data.title(id)
+		var holder := s.title_holder(id)
+		var tip: String = "%s (claimed at the %s)" % [info["name"], engine.data.tile(info["claimed_at"])["name"]]
+		if holder >= 0:
+			tip += ". Held by %s" % s.players[holder].colour
+		var thumb := CardThumb.make(_cached_texture(info["image"]), 90, tip)
+		if holder >= 0:
+			thumb.modulate = Color(1, 1, 1, 0.55)
+			thumb.border = TileView.NOBLE_COLOURS[s.players[holder].colour]
+			thumb.caption = s.players[holder].colour
+		titles_grid.add_child(thumb)
 
 
 func _set_acting(i: int) -> void:
