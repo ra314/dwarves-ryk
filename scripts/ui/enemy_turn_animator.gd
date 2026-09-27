@@ -5,6 +5,8 @@ extends RefCounted
 ## flash. It works on a display copy of the board from just before the command;
 ## the real state is already final and is drawn again when the replay ends.
 
+## Flight time for one tile's group of enemies.
+const STEP_SECONDS := 0.2
 const DIR_ARROWS := {"north": "↑", "east": "→", "south": "↓", "west": "←"}
 
 var main  # the main screen (untyped: main.gd has no class_name)
@@ -90,16 +92,37 @@ func _move_step(roll: Dictionary, moves: Array) -> void:
 		await _show("%sEnemies move %s %s" % [title, roll["direction"], arrow], 0.9)
 	if moves.is_empty():
 		return
-	# Lift the movers off their tiles, fly them, then set them down.
-	for m in moves:
+	# One tile's group at a time, front of the march first, so a group has left
+	# its tile before the one behind it arrives. Edge bounces go last.
+	for m in _march_order(moves):
 		board.tile_at(m["from"]).enemies -= int(m["count"])
-	main.draw_board(board)
-	if not skip:
-		await main.fly_enemies(moves, 0.6)
-	for m in moves:
+		main.draw_board(board)
+		if not skip:
+			await main.fly_enemies([m], STEP_SECONDS)
 		board.tile_at(m["to"]).enemies += int(m["count"])
-	main.draw_board(board)
-	await _wait(0.25)
+		main.draw_board(board)
+	await _wait(0.2)
+
+
+## Sorts moves so the leading tiles in the direction of travel go first.
+static func _march_order(moves: Array) -> Array:
+	if moves.size() < 2:
+		return moves
+	# The shared direction is the most common from->to step (bounces go the other way).
+	var votes := {}
+	for m in moves:
+		var d: Vector2i = m["to"] - m["from"]
+		votes[d] = int(votes.get(d, 0)) + 1
+	var dir: Vector2i = votes.keys()[0]
+	for d in votes:
+		if votes[d] > votes[dir]:
+			dir = d
+	var ahead := func(m) -> int: return -(m["from"].x * dir.x + m["from"].y * dir.y)
+	var forward := moves.filter(func(m): return m["to"] - m["from"] == dir)
+	var bounced := moves.filter(func(m): return m["to"] - m["from"] != dir)
+	forward.sort_custom(func(a, b): return ahead.call(a) < ahead.call(b))
+	bounced.sort_custom(func(a, b): return ahead.call(a) > ahead.call(b))
+	return forward + bounced
 
 
 func _show(text: String, seconds: float, focus: Vector2i = PlayerState.NO_TILE) -> void:

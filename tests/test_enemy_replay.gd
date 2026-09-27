@@ -58,3 +58,23 @@ func test_done_with_animation_blocks_input_then_finishes() -> void:
 	assert_false(main.blocker.visible)
 	assert_eq(main.engine.state.round, 2)
 	assert_eq(main.tile_views[0].tile, main.engine.state.tiles[0], "board redrawn from the real state")
+
+
+func _mv(fx: int, tx: int, y: int = 2) -> Dictionary:
+	return {"type": "enemy_moved", "from": Vector2i(fx, y), "to": Vector2i(tx, y), "count": 1}
+
+
+func test_march_order_leading_group_first_bounces_last() -> void:
+	# Moving west: x=1 leads, then 2, then 3; the x=0 group bounces east, last.
+	var moves := [_mv(3, 2), _mv(0, 1), _mv(1, 0), _mv(2, 1)]
+	var order := EnemyTurnAnimator._march_order(moves).map(func(m): return m["from"].x)
+	assert_eq(order, [1, 2, 3, 0])
+
+
+func test_march_order_south() -> void:
+	var moves := [
+		{"from": Vector2i(0, 1), "to": Vector2i(0, 2), "count": 1},
+		{"from": Vector2i(0, 3), "to": Vector2i(0, 4), "count": 1},
+		{"from": Vector2i(2, 2), "to": Vector2i(2, 3), "count": 1}]
+	var order := EnemyTurnAnimator._march_order(moves).map(func(m): return m["from"].y)
+	assert_eq(order, [3, 2, 1])
