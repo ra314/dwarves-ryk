@@ -4,6 +4,10 @@ extends Control
 ## then click a tile for the moves and actions available there.
 
 const SAVE_PATH := "user://save.json"
+const MARGIN := 10
+const TILE_GAP := 4
+## Tiles fill the full height of the 960px-tall layout.
+const TILE := (960 - 2 * MARGIN - 4 * TILE_GAP) / 5
 const PHASE_NAMES := ["Dwarf Phase", "Enemy Phase", "Game over"]
 
 var engine := GameEngine.new()
@@ -47,13 +51,25 @@ func _build_ui() -> void:
 	var margin := MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 10)
+		margin.add_theme_constant_override("margin_" + side, MARGIN)
 	add_child(margin)
-	var root := VBoxContainer.new()
+	# Board on the left, as tall as the screen; every control in one column on the right.
+	var root := HBoxContainer.new()
+	root.add_theme_constant_override("separation", 12)
 	margin.add_child(root)
 
+	board = GridContainer.new()
+	board.columns = 5
+	board.add_theme_constant_override("h_separation", TILE_GAP)
+	board.add_theme_constant_override("v_separation", TILE_GAP)
+	root.add_child(board)
+
+	var side := VBoxContainer.new()
+	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	root.add_child(side)
+
 	var top := HBoxContainer.new()
-	root.add_child(top)
+	side.add_child(top)
 	top.add_child(_label("Players"))
 	players_spin = SpinBox.new()
 	players_spin.min_value = 1
@@ -61,42 +77,36 @@ func _build_ui() -> void:
 	players_spin.value = 2
 	top.add_child(players_spin)
 	top.add_child(_button("New game", _new_game))
-	undo_button = _button("Undo", _undo)
-	top.add_child(undo_button)
-	unlimited_check = CheckBox.new()
-	unlimited_check.text = "Unlimited undo"
-	unlimited_check.toggled.connect(func(on): engine.unlimited_undo = on; _refresh())
-	top.add_child(unlimited_check)
 	top.add_child(_button("Save", _save))
 	top.add_child(_button("Load", _load))
 	top.add_child(_button("Fullscreen (F11)", _toggle_fullscreen))
+
+	var undo_row := HBoxContainer.new()
+	side.add_child(undo_row)
+	undo_button = _button("Undo", _undo)
+	undo_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	undo_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	undo_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	undo_row.add_child(undo_button)
+	unlimited_check = CheckBox.new()
+	unlimited_check.text = "Unlimited undo"
+	unlimited_check.toggled.connect(func(on): engine.unlimited_undo = on; _refresh())
+	undo_row.add_child(unlimited_check)
+
 	status_label = _label("")
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	top.add_child(status_label)
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	side.add_child(status_label)
 
 	var prompt_row := HBoxContainer.new()
-	root.add_child(prompt_row)
+	side.add_child(prompt_row)
 	prompt_label = _label("")
 	prompt_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	prompt_row.add_child(prompt_label)
 	cancel_button = _button("Cancel", _cancel_target)
 	cancel_button.visible = false
 	prompt_row.add_child(cancel_button)
 
-	var main := HBoxContainer.new()
-	main.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(main)
-
-	board = GridContainer.new()
-	board.columns = 5
-	board.add_theme_constant_override("h_separation", 4)
-	board.add_theme_constant_override("v_separation", 4)
-	main.add_child(board)
-
-	var side := VBoxContainer.new()
-	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	main.add_child(side)
 	track_label = RichTextLabel.new()
 	track_label.bbcode_enabled = true
 	track_label.fit_content = true
@@ -113,7 +123,7 @@ func _build_ui() -> void:
 	log_view = RichTextLabel.new()
 	log_view.bbcode_enabled = true
 	log_view.scroll_following = true
-	log_view.custom_minimum_size = Vector2(0, 220)
+	log_view.custom_minimum_size = Vector2(0, 180)
 	side.add_child(log_view)
 
 	menu = PopupMenu.new()
@@ -143,6 +153,7 @@ func _build_board() -> void:
 	tile_views.clear()
 	for pos in engine.state.all_positions():
 		var tv := TileView.new(pos)
+		tv.custom_minimum_size = Vector2(TILE, TILE)
 		tv.clicked.connect(_on_tile_clicked)
 		tv.enemy_icon = _cached_texture("tokens/enemy.png")
 		tv.warrior_icon = _cached_texture("tokens/warrior.png")
@@ -327,6 +338,7 @@ func _refresh_players() -> void:
 		head.add_child(name_button)
 		var info := _label(_player_summary(p))
 		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		head.add_child(info)
 		var done := Button.new()
 		done.text = "Done" if not p.done else "✓ done"
