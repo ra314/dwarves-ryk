@@ -430,18 +430,14 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 			if selected.size() == 1:
 				_menu_item("Noble Combat (single die 6+)", NobleCombatCommand.new(acting, selected[0], pos))
 			else:
-				menu.add_item("Noble Combat (single die 6+) — select exactly one die")
-				menu.set_item_disabled(menu.item_count - 1, true)
-				menu_actions.append(func(): pass)
+				_add_entry("Noble Combat (single die 6+) — select exactly one die", true, func(): pass)
 		for title in p.titles:
 			for a in engine.data.title(title)["abilities"]:
 				if a["type"] == "action":
 					_title_item(pos, a)
 
 	if menu.item_count <= 1:
-		menu.add_item("Nothing to do here for %s" % p.colour)
-		menu.set_item_disabled(menu.item_count - 1, true)
-		menu_actions.append(func(): pass)
+		_add_entry("Nothing to do here for %s" % p.colour, true, func(): pass)
 	menu.reset_size()
 	menu.popup(Rect2i(Vector2i(get_global_mouse_position()), Vector2i.ZERO))
 
@@ -458,9 +454,16 @@ func _action_text(a: Dictionary) -> String:
 func _menu_item(text: String, cmd: Command, on_pick: Callable = Callable()) -> void:
 	var err := engine.check(cmd)
 	var blocked := err != "" and not err.begins_with("Choose")
-	menu.add_item(text if not blocked else "%s — %s" % [text, err])
-	menu.set_item_disabled(menu.item_count - 1, blocked)
-	menu_actions.append(on_pick if on_pick.is_valid() else func(): _run(cmd))
+	_add_entry(text if not blocked else "%s — %s" % [text, err], blocked,
+		on_pick if on_pick.is_valid() else func(): _run(cmd))
+
+
+## Adds a menu item whose id is its index in menu_actions. Separators take ids of
+## their own, so ids must be set explicitly rather than left to Godot.
+func _add_entry(text: String, disabled: bool, action: Callable) -> void:
+	menu.add_item(text, menu_actions.size())
+	menu.set_item_disabled(menu.item_count - 1, disabled)
+	menu_actions.append(action)
 
 
 func _action_item(pos: Vector2i, a: Dictionary) -> void:
@@ -549,8 +552,7 @@ func _choose(title: String, options: Array, then: Callable) -> void:
 	menu_actions.clear()
 	menu.add_separator(title)
 	for i in options.size():
-		menu.add_item(options[i])
-		menu_actions.append(then.bind(i))
+		_add_entry(options[i], false, then.bind(i))
 	menu.reset_size()
 	menu.popup_centered()
 

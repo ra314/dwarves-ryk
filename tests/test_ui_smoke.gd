@@ -44,3 +44,42 @@ func test_target_mode_waits_for_a_tile() -> void:
 	assert_true(main.target_step.is_valid())
 	main._on_tile_clicked(Vector2i(2, 2))
 	assert_eq(main.engine.state.tile_at(Vector2i(1, 2)).id, "mine")
+
+
+## Presses the item whose text starts with prefix, as Godot does: by the item's id.
+func _press(prefix: String) -> void:
+	for i in main.menu.item_count:
+		if main.menu.get_item_text(i).begins_with(prefix):
+			assert_false(main.menu.is_item_disabled(i), prefix)
+			main.menu.id_pressed.emit(main.menu.get_item_id(i))
+			return
+	fail_test("no menu item starting '%s'" % prefix)
+
+
+func test_pressing_a_menu_item_runs_that_item() -> void:
+	var s: GameState = main.engine.state
+	s.tile_at(Vector2i(1, 3)).warriors = 2
+	main._on_tile_clicked(Vector2i(1, 2))  # Barracks: heading, Move, Move carrying 1, Move carrying 2, ...
+	_press("Move here carrying 2")
+	assert_eq(main.engine.state.players[0].pos, Vector2i(1, 2))
+	assert_eq(main.engine.state.tile_at(Vector2i(1, 2)).warriors, 2)
+
+
+func test_choice_popup_runs_chosen_option() -> void:
+	var s: GameState = main.engine.state
+	var smith := Vector2i(0, 3)
+	s.tile_at(smith).id = "blacksmith"
+	s.tile_at(smith).revealed = true
+	var p := s.players[0]
+	p.dice.clear()
+	var spend := p.add_die("d8")
+	spend["value"] = 5
+	var d4 := p.add_die("d4")
+	d4["value"] = 1
+	var d6 := p.add_die("d6")
+	d6["value"] = 1
+	main.selected = [int(spend["id"])]
+	main._on_tile_clicked(smith)
+	_press("Promote Worker")
+	_press("d6")  # second option in "Promote which die?"
+	assert_eq(main.engine.state.players[0].pending.map(func(d): return d["type"]), ["d8"])
