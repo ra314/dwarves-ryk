@@ -11,6 +11,7 @@ var acting: int = 0
 var selected: Array = []           # die ids of the acting player
 var target_step: Callable          # set while waiting for a tile click: func(pos)
 var textures := {}
+var _shown_round := -1             # dice tumble when a new round's roll is first shown
 
 var tile_views: Array[TileView] = []
 var board: GridContainer
@@ -154,6 +155,7 @@ func _new_game() -> void:
 	selected.clear()
 	_cancel_target()
 	log_view.clear()
+	_shown_round = -1
 	_build_board()
 	_log_events(ev)
 	_refresh()
@@ -285,6 +287,8 @@ func _refresh_players() -> void:
 	for c in players_box.get_children():
 		c.queue_free()
 	var s := engine.state
+	var new_roll := s.round != _shown_round
+	_shown_round = s.round
 	for p in s.players:
 		var panel := PanelContainer.new()
 		var style := StyleBoxFlat.new()
@@ -319,15 +323,16 @@ func _refresh_players() -> void:
 		if not p.on_board:
 			tray.add_child(_label("Wounded: misses this Dwarf Phase" if p.skip_phases == 0 else "Wounded: misses the next Dwarf Phase"))
 			continue
-		for die in p.dice:
-			var b := Button.new()
-			b.toggle_mode = true
-			b.custom_minimum_size = Vector2(56, 36)
-			b.text = "%s\n%d" % [die["type"], die["value"]] if not die["used"] else "%s\n–" % die["type"]
-			b.disabled = die["used"] or p.done
-			b.button_pressed = p.index == acting and selected.has(int(die["id"]))
-			b.toggled.connect(_toggle_die.bind(p.index, int(die["id"])))
-			tray.add_child(b)
+		for i in p.dice.size():
+			var die: Dictionary = p.dice[i]
+			var dv := DiceView.new()
+			dv.setup(die["type"], int(die["value"]), die["used"] or p.done,
+				p.index == acting and selected.has(int(die["id"])),
+				TileView.NOBLE_COLOURS[p.colour], hash([p.index, die["id"], s.round]))
+			dv.picked.connect(_toggle_die.bind(p.index, int(die["id"])))
+			tray.add_child(dv)
+			if new_roll:
+				dv.roll_in(0.05 * i + 0.1 * p.index)
 		if p.index == acting and not selected.is_empty():
 			var total := 0
 			for id in selected:

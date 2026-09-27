@@ -74,11 +74,13 @@ func _draw() -> void:
 	if tile.warriors > 0:
 		_token(Vector2(r.position.x + 74, y), Color("2060b0"), "W", tile.warriors)
 	# Nobles along the bottom.
-	var x := r.position.x + 18
+	var step := minf(26.0, (r.size.x - 50) / maxf(1, nobles.size() - 1))
+	var rad := minf(12.0, step / 2 + 1)
+	var x := r.position.x + 16
 	for c in nobles:
-		draw_circle(Vector2(x, r.end.y - 22), 12, Color.BLACK)
-		draw_circle(Vector2(x, r.end.y - 22), 10, NOBLE_COLOURS.get(c, Color.WHITE))
-		x += 26
+		draw_circle(Vector2(x, r.end.y - 22), rad, Color.BLACK)
+		draw_circle(Vector2(x, r.end.y - 22), rad - 2, NOBLE_COLOURS.get(c, Color.WHITE))
+		x += step
 	if highlight.a > 0:
 		draw_rect(r, highlight, false, 4)
 	if flash > 0:
