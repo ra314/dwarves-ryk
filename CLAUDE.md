@@ -1,6 +1,6 @@
 # Dwarves: Reclaim Your Kingdom — Godot project
 
-A personal digital version of *Dwarves: Reclaim Your Kingdom*, a co-op board game (1–6 players) by Pink Wizard Games (Ben Galea). Built for the owner's own use only; the artwork and rulebook belong to Pink Wizard Games, so nothing here is to be published or distributed.
+A personal digital version of *Dwarves: Reclaim Your Kingdom*, a co-op board game (1–6 players) by Pink Wizard Games (Ben Galea). Built for the owner's own use only; the artwork and rulebook belong to Pink Wizard Games. The owner has chosen to keep the assets in this repository.
 
 Engine: **Godot 4, GDScript.**
 
@@ -75,7 +75,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 
 ## Status
 
-- Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R20); game data transcribed from the cards.
+- Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R26); game data transcribed from the cards.
 - Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar.
 - Next: milestone 7 (animations beyond the tile flash, sound, a settings screen, more save slots).
 
@@ -86,17 +86,6 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 - `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
 - UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.
 
-### Provisional interpretations (confirm with the owner, then add as R#)
-
-The spec doesn't settle these; the engine does the following for now:
-
-1. **Garrison is unreachable.** §5.8 protects nobles only on an *unblocked* Watchtower, but any enemy on the tile blocks it (§5.1, R10), so the passive never applies. Implemented literally (see `Rules.resolve_board`). If Garrison should work, exempt it from blocking.
-2. **Title dice (d10, d12) join from the next round**, like R14/R20.
-3. **Tough, "the same enemy"**: a Tough noble isn't wounded again on the same tile this round unless the enemy count there rises. Moving, or enemies moving, resets this.
-4. **Discover the Path** can only be used while standing on that Empty Halls. Entering another Empty Halls makes you lost again.
-5. **Solo title swap**: at the 2-title limit you choose which title to return (the UI asks).
-6. **Minecart** (Master Miner) ignores whether either Mine is blocked.
-
 ## Running and testing
 
 - Tests: `godot --headless --import` once, then `godot --headless -s addons/gut/gut_cmdln.gd` (config in `.gutconfig.json`; GUT 9.3.0 is vendored in `addons/gut`).
@@ -105,7 +94,7 @@ The spec doesn't settle these; the engine does the following for now:
 
 ## Getting the assets on a new machine
 
-The images aren't in this package (too large). Copy your existing `assets` folder into the project root. To download them again from scratch:
+The images live in `assets/` in the repository. If they're ever missing, copy your backup `assets` folder into the project root. To download them again from scratch:
 
 1. `python tools/download_assets.py tools/Dwarves_mod_links.txt` (downloads into `./assets` with temporary names)
 2. `python tools/rename_assets.py` (renames them to match `game_data.json`)

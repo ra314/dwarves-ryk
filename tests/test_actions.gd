@@ -207,6 +207,27 @@ func test_one_title_limit_returns_old_title() -> void:
 	assert_eq(s.title_holder("master_miner"), -1)
 
 
+func test_r25_solo_chooses_title_to_return() -> void:
+	new_game(1)
+	s.players[0].titles.append_array(["master_miner", "workmaster"])
+	place(0, MINE)
+	var room := Vector2i(3, 2)
+	set_tile(room, "throne_room")
+	run(UseActionCommand.new(0, room, "coronation", dice(0, [7, 7]), {"replace_title": "workmaster"}))
+	assert_eq(s.players[0].titles, ["master_miner", "regent"])
+
+
+func test_r26_minecart_ignores_blocked_mines() -> void:
+	place(0, MINE)
+	s.players[0].titles.append("master_miner")
+	var other := Vector2i(4, 2)
+	set_tile(other, "mine")
+	s.tile_at(other).enemies = 1
+	var r := run(MoveCommand.new(0, other, 0, true))
+	assert_true(has_event(r["events"], "noble_moved"))
+	assert_true(has_event(r["events"], "noble_wounded"), "the enemy there still wounds you")
+
+
 func test_solo_holds_two_titles() -> void:
 	new_game(1)
 	place(0, MINE)
@@ -215,7 +236,7 @@ func test_solo_holds_two_titles() -> void:
 	assert_eq(s.players[0].titles, ["master_miner", "workmaster"])
 
 
-func test_workmaster_d10_joins_next_round() -> void:
+func test_r22_workmaster_d10_joins_next_round() -> void:
 	var p := s.players[0]
 	run(UseActionCommand.new(0, LIVING, "claim_workmaster", dice(0, [7, 7])))
 	assert_eq(p.pending.map(func(d): return d["type"]), ["d10"])

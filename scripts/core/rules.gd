@@ -464,8 +464,8 @@ func resolve_board(state: GameState, ev: Array) -> void:
 		var t := state.tile_at(p.pos)
 		if t.enemies <= 0:
 			continue
-		if t.revealed and t.id == "watchtower" and not t.is_blocked():
-			continue  # Garrison. Never true while an enemy is here; see RULES.md §5.8.
+		if t.revealed and t.id == "watchtower":
+			continue  # Garrison works even though the enemy blocks the tile (R21).
 		if p.has_title("master_of_the_guard") and p.tough_tile == p.pos and t.enemies <= p.tough_count:
 			continue
 		wound(state, p, ev)

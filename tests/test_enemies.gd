@@ -229,6 +229,46 @@ func test_r7_tough_noble_stays_and_marker_moves() -> void:
 	assert_true(p.on_board)
 
 
+func test_r23_tough_is_wounded_again_by_new_enemies_arriving() -> void:
+	var p := s.players[0]
+	p.titles.append("master_of_the_guard")
+	s.tile_at(BARRACKS).enemies = 1
+	run(MoveCommand.new(0, BARRACKS))
+	var track := s.turn_index
+	# Enemies move: the ones now here are new, so they wound again. The Noble still stays.
+	s.tile_at(Vector2i(1, 1)).enemies = 1
+	s.tile_at(BARRACKS).enemies = 0
+	engine.rules.move_all_enemies(s, 3, [])  # south, onto the Barracks
+	engine.rules.resolve_board(s, [])
+	assert_eq(s.turn_index, track + 1)
+	assert_true(p.on_board)
+	assert_eq(p.pos, BARRACKS)
+
+
+func test_r21_garrison_protects_even_though_blocked() -> void:
+	var tower := Vector2i(0, 3)
+	set_tile(tower, "watchtower")
+	var track := s.turn_index
+	s.tile_at(tower).enemies = 2
+	run(MoveCommand.new(0, tower))
+	assert_true(s.players[0].on_board)
+	assert_eq(s.turn_index, track)
+	# The tile is still blocked for actions.
+	s.tile_at(Vector2i(0, 4)).enemies = 1
+	refuse(UseActionCommand.new(0, tower, "axe_throwers", dice(0, [4]), {"target": Vector2i(0, 4)}), "blocked")
+
+
+func test_garrison_survives_enemy_phase() -> void:
+	var tower := Vector2i(0, 3)
+	set_tile(tower, "watchtower")
+	place(0, tower)
+	place(1, tower)
+	for n in s.neighbours(tower) + [tower]:
+		s.tile_at(n).enemies = 1
+	var ev := _enemy_phase()
+	assert_false(has_event(ev, "noble_wounded"))
+
+
 # --- Surge --------------------------------------------------------------------
 
 func test_r13_surge_replaces_spawn() -> void:

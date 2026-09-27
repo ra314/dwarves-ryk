@@ -19,7 +19,9 @@ func test_every_ruling_has_a_flag() -> void:
 			"encampment_spawn_overrides_messenger", "blocked_tiles_disable_passives",
 			"discover_path_restores_all_movement", "enemies_stay_on_new_tunnel", "surge_replaces_spawn",
 			"promoted_die_usable_from", "title_dice_return_with_title", "recruited_die_usable_from",
-			"undo_history", "unlimited_undo_rerolls_are_random"]:
+			"undo_history", "unlimited_undo_rerolls_are_random", "garrison_works_when_blocked",
+			"title_die_usable_from", "tough_new_enemies_still_wound", "discover_path_only_on_tile",
+			"solo_choose_title_to_return", "minecart_ignores_blocked_mines"]:
 		assert_true(r.has(key), key)
 
 

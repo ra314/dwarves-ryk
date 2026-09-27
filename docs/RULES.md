@@ -81,7 +81,7 @@ Players can't act during the Enemy Phase. **(R6)**
 - Each die is spent once per round.
 - You can use actions on your own tile or on an orthogonally adjacent tile, but not diagonally.
 - If an action has a resource cost, pay it too. You can't take the action if you can't pay.
-- A tile with any enemy on it is **blocked**: its actions and passives don't work. This includes Collapse Tunnel, and it also switches off Empty Halls' *Lost*, so an enemy on Empty Halls lets you walk out. **(R10)**
+- A tile with any enemy on it is **blocked**: its actions and passives don't work. This includes Collapse Tunnel, and it also switches off Empty Halls' *Lost*, so an enemy on Empty Halls lets you walk out. **(R10)** The one exception is Watchtower's *Garrison*. **(R21)**
 
 ### 5.2 Worker assistance
 - You may combine up to 2 dice and add their values to meet one action's minimum. The Workmaster title raises this to 3.
@@ -92,8 +92,8 @@ Players can't act during the Enemy Phase. **(R6)**
 - Base movement is 1 tile per round, orthogonal only, and can happen at any point in your turn.
 - Bonuses stack: +1 if you started the round on an unblocked Hearth, +1 with the Messenger title.
 - Nobles can move onto face-down Ruins. **(R4)** The only action there is Expedition, which you can also use from an adjacent tile.
-- Empty Halls: once on it, you can't leave until you use *Discover the Path (5+)* that same round. Doing so frees all of your remaining movement for the round. **(R11)**
-- Master Miner: moving between any two Mines is free (it doesn't use movement).
+- Empty Halls: once on it, you can't leave until you use *Discover the Path (5+)* that same round. Doing so frees all of your remaining movement for the round. **(R11)** You must be standing on that Empty Halls to use it, and entering another Empty Halls makes you lost again. **(R24)**
+- Master Miner: moving between any two Mines is free (it doesn't use movement), even if either Mine is blocked. **(R26)**
 
 ### 5.4 Resources
 - You can hold any number of resources, but gains come from the shared supply.
@@ -115,10 +115,10 @@ Players can't act during the Enemy Phase. **(R6)**
 
 ### 5.8 Wounded
 - If your Noble shares a tile with an enemy and no warrior is there to fight it, you are **wounded**.
-- Exception: nobles can't be wounded on an unblocked Watchtower.
+- Exception: nobles can't be wounded on a Watchtower. Garrison is the one passive that keeps working while the tile is blocked. **(R21)**
 - When wounded: remove your Noble from the board and move the turn marker forward 1 cell.
 - You skip the next Dwarf Phase, then return at the following Revive step.
-- Master of the Guard (*Tough*): the turn marker still moves forward, but your Noble stays on its tile and plays normally next round. The same enemy doesn't wound you again this round. **(R7)**
+- Master of the Guard (*Tough*): the turn marker still moves forward, but your Noble stays on its tile and plays normally next round. The enemies that wounded you don't wound you again this round, but each new enemy that arrives (or that you move onto) wounds you again and moves the marker again. **(R7, R23)**
 
 ### 5.9 Expedition (exploring Ruins)
 - The Ruins back has *Expedition (3+)*: pay 2 resources, then flip the tile.
@@ -198,7 +198,7 @@ The printed Mine tile says "Expert Miner" and the Living Quarters says "trait". 
 
 ## 8. Title reference
 
-Each player holds at most 1 title (solo: 2). Gaining another returns your current one to the shared area, along with any die it gave you. **(R15)** You can take a title another player holds only if they agree.
+Each player holds at most 1 title (solo: 2). Gaining another returns your current one to the shared area, along with any die it gave you. **(R15)** In solo, at the 2-title limit, you choose which one to return. **(R25)** A title's die (d10, d12) joins your active pool from the **next** round. **(R22)** You can take a title another player holds only if they agree.
 
 | Title | From | Abilities |
 |---|---|---|
@@ -237,3 +237,9 @@ Decisions made where the rulebook is unclear. The matching flags are in `game_da
 | R18 | Undo history is shared; undo reverses the most recent action by anyone. |
 | R19 | In unlimited-undo mode, redoing an action after undoing past a roll gives a fresh random result. |
 | R20 | A recruited d4 is usable from next round. |
+| R21 | Garrison works even while enemies block the Watchtower (otherwise it could never apply). |
+| R22 | A title's die (d10, d12) is usable from next round. |
+| R23 | *Tough* doesn't stop new enemies wounding you; it only stops the return to the Hearth and the missed round. |
+| R24 | *Discover the Path* only works while standing on that Empty Halls. |
+| R25 | Solo: at the 2-title limit you choose which title to return. |
+| R26 | The minecart works even if either Mine is blocked. |

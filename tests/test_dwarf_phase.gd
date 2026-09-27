@@ -201,7 +201,7 @@ func test_r11_discover_path_frees_all_remaining_movement() -> void:
 	refuse(MoveCommand.new(0, Vector2i(0, 0)), "No movement left")
 
 
-func test_discover_path_only_from_on_the_halls() -> void:
+func test_r24_discover_path_only_from_on_the_halls() -> void:
 	var halls := Vector2i(0, 3)
 	set_tile(halls, "empty_halls")
 	refuse(UseActionCommand.new(0, halls, "discover_the_path", dice(0, [5])), "standing on")

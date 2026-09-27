@@ -711,7 +711,13 @@
     "title_dice_return_with_title": true,
     "recruited_die_usable_from": "next_round",
     "undo_history": "shared",
-    "unlimited_undo_rerolls_are_random": true
+    "unlimited_undo_rerolls_are_random": true,
+    "garrison_works_when_blocked": true,
+    "title_die_usable_from": "next_round",
+    "tough_new_enemies_still_wound": true,
+    "discover_path_only_on_tile": true,
+    "solo_choose_title_to_return": true,
+    "minecart_ignores_blocked_mines": true
   },
   "settings": {
     "unlimited_undo": false,
