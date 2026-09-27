@@ -22,6 +22,8 @@ var tile: TileState
 var nobles: Array = []   # colours of Nobles here
 var label: String = ""
 var texture: Texture2D
+var enemy_icon: Texture2D
+var warrior_icon: Texture2D
 var highlight: Color = Color(0, 0, 0, 0)
 var flash: float = 0.0
 
@@ -56,23 +58,22 @@ func _draw() -> void:
 		return
 	if texture != null:
 		draw_texture_rect(texture, r, false)
-		if tile.revealed and tile.flipped:
-			draw_rect(r, Color(0, 0, 0, 0.45))
 	else:
 		draw_rect(r, TILE_COLOURS.get(tile.visible_id(), Color.DIM_GRAY))
 	var font := get_theme_default_font()
 	var fs := 14
-	# Name banner.
-	draw_rect(Rect2(r.position, Vector2(r.size.x, 22)), Color(0, 0, 0, 0.55))
-	draw_string(font, r.position + Vector2(6, 16), label, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 12, fs, Color.WHITE)
+	# Name banner, only when there's no card art (the art has the name printed on it).
+	if texture == null:
+		draw_rect(Rect2(r.position, Vector2(r.size.x, 22)), Color(0, 0, 0, 0.55))
+		draw_string(font, r.position + Vector2(6, 16), label, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 12, fs, Color.WHITE)
 	draw_string(font, r.position + Vector2(r.size.x - 30, r.size.y - 6), "%s%d" % [char(65 + pos.x), pos.y + 1],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, 0.6))
 	# Tokens.
 	var y := r.position.y + 48
 	if tile.enemies > 0:
-		_token(Vector2(r.position.x + 24, y), Color("b02020"), "E", tile.enemies)
+		_token(Vector2(r.position.x + 30, y), Color("b02020"), "E", tile.enemies, enemy_icon)
 	if tile.warriors > 0:
-		_token(Vector2(r.position.x + 74, y), Color("2060b0"), "W", tile.warriors)
+		_token(Vector2(r.position.x + 84, y), Color("2060b0"), "W", tile.warriors, warrior_icon)
 	# Nobles along the bottom.
 	var step := minf(26.0, (r.size.x - 50) / maxf(1, nobles.size() - 1))
 	var rad := minf(12.0, step / 2 + 1)
@@ -87,8 +88,19 @@ func _draw() -> void:
 		draw_rect(r, Color(1, 1, 0.6, flash * 0.5))
 
 
-func _token(c: Vector2, col: Color, letter: String, n: int) -> void:
+func _token(c: Vector2, col: Color, letter: String, n: int, icon: Texture2D) -> void:
 	var font := get_theme_default_font()
+	if icon != null:
+		draw_circle(c + Vector2(2, 3), 21, Color(0, 0, 0, 0.4))
+		draw_texture_rect(icon, Rect2(c - Vector2(21, 21), Vector2(42, 42)), false)
+		# Count badge.
+		var b := c + Vector2(16, 14)
+		draw_circle(b, 10, Color.BLACK)
+		draw_circle(b, 9, col)
+		var s := str(n)
+		var bw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+		draw_string(font, b + Vector2(-bw / 2, 5), s, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
+		return
 	draw_circle(c, 18, Color.BLACK)
 	draw_circle(c, 16, col)
 	var text := "%s%d" % [letter, n]

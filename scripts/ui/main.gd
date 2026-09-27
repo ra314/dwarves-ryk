@@ -143,6 +143,8 @@ func _build_board() -> void:
 	for pos in engine.state.all_positions():
 		var tv := TileView.new(pos)
 		tv.clicked.connect(_on_tile_clicked)
+		tv.enemy_icon = _cached_texture("tokens/enemy.png")
+		tv.warrior_icon = _cached_texture("tokens/warrior.png")
 		board.add_child(tv)
 		tile_views.append(tv)
 
@@ -267,6 +269,10 @@ func _texture_for(t: TileState) -> Texture2D:
 	else:
 		var info := engine.data.tile(t.id)
 		rel = info["back"] if t.flipped else info["image"]
+	return _cached_texture(rel)
+
+
+func _cached_texture(rel: String) -> Texture2D:
 	if not textures.has(rel):
 		textures[rel] = _load_texture("res://assets/" + rel)
 	return textures[rel]
