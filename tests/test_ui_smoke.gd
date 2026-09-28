@@ -205,3 +205,32 @@ func test_animation_speed_scales_delays_and_is_saved() -> void:
 	assert_eq(other.anim_speed, 0.5)
 	assert_almost_eq(other.scaled(EnemyTurnAnimator.STEP_SECONDS), 0.4, 0.0001)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_settings.cfg"))
+
+
+func _give_all_dice(p: PlayerState) -> void:
+	p.dice.clear()
+	for t in ["d4", "d4", "d4", "d6", "d6", "d6", "d6", "d8", "d8", "d8", "d10", "d12"]:
+		var d := p.add_die(t)
+		d["value"] = 3
+	for k in p.reserve:
+		p.reserve[k] = 0
+
+
+func test_dice_keep_full_size_when_they_fit() -> void:
+	assert_eq(main.dice_side(5, false), main.DIE_MAX)
+
+
+func test_every_die_fits_in_the_tray() -> void:
+	var p: PlayerState = main.engine.state.players[0]
+	_give_all_dice(p)
+	for showing_total in [false, true]:
+		main.selected = [int(p.dice[0]["id"])] if showing_total else []
+		main._refresh()
+		await get_tree().process_frame
+		var tray: HBoxContainer = null
+		for n in main.players_box.get_child(0).find_children("*", "HBoxContainer", true, false):
+			if n.get_children().any(func(c): return c is DiceView):
+				tray = n
+		assert_not_null(tray)
+		assert_eq(tray.get_children().filter(func(c): return c is DiceView).size(), 12)
+		assert_lte(tray.get_combined_minimum_size().x, float(main.TRAY_WIDTH), "selected total shown: %s" % showing_total)

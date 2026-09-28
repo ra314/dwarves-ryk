@@ -7,8 +7,12 @@ const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.cfg"
 const MARGIN := 10
 const TILE_GAP := 4
-## Tiles fill the full height of the 960px-tall layout.
-const TILE := (960 - 2 * MARGIN - 4 * TILE_GAP) / 5
+## The layout's fixed size, scaled to the window (keep in sync with
+## display/window/size/viewport_* in project.godot). 16:9 fills most screens.
+const LAYOUT_W := 1920
+const LAYOUT_H := 1080
+## Tiles fill the full height of the layout.
+const TILE := (LAYOUT_H - 2 * MARGIN - 4 * TILE_GAP) / 5
 const PHASE_NAMES := ["Dwarf Phase", "Enemy Phase", "Game over"]
 
 var engine := GameEngine.new()
@@ -213,7 +217,7 @@ func _build_ui() -> void:
 	var info_row := HBoxContainer.new()
 	info_row.add_theme_constant_override("separation", 10)
 	side.add_child(info_row)
-	track_view = TrackView.new(_cached_texture(engine.data.raw["turn_track"]["image"]), 170)
+	track_view = TrackView.new(_cached_texture(engine.data.raw["turn_track"]["image"]), 200)
 	info_row.add_child(track_view)
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -279,7 +283,7 @@ func _build_ui() -> void:
 	blocker.visible = false
 	add_child(blocker)
 	var skip_button := _button("Skip >>  (Space)", func(): animator.skip = true)
-	skip_button.position = Vector2(MARGIN + 8, 960 - MARGIN - 48)
+	skip_button.position = Vector2(MARGIN + 8, LAYOUT_H - MARGIN - 48)
 	blocker.add_child(skip_button)
 	banner = PanelContainer.new()
 	var bs := StyleBoxFlat.new()
@@ -432,7 +436,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		_toggle_fullscreen()
 
 
-## The layout is fixed at 1600x960 and scaled to fit the window (project stretch
+## The layout is fixed at LAYOUT_W x LAYOUT_H and scaled to fit the window (project stretch
 ## settings: canvas_items + keep), so fullscreen just makes everything bigger.
 func _toggle_fullscreen() -> void:
 	var fs := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
@@ -734,9 +738,11 @@ func _refresh_players() -> void:
 		if not p.on_board:
 			tray.add_child(_label("Wounded: misses this Dwarf Phase" if p.skip_phases == 0 else "Wounded: misses the next Dwarf Phase"))
 			continue
+		var showing_total := p.index == acting and not selected.is_empty()
+		var side := dice_side(p.dice.size(), showing_total)
 		for i in p.dice.size():
 			var die: Dictionary = p.dice[i]
-			var dv := DiceView.new()
+			var dv := DiceView.new(side)
 			dv.setup(die["type"], int(die["value"]), die["used"] or p.done,
 				p.index == acting and selected.has(int(die["id"])),
 				TileView.NOBLE_COLOURS[p.colour], hash([p.index, die["id"], s.round]))
@@ -821,12 +827,30 @@ func _refresh_titles() -> void:
 	for id in engine.data.title_ids():
 		var info := engine.data.title(id)
 		var holder := s.title_holder(id)
-		var thumb := CardThumb.make(_cached_texture(info["image"]), 90, _title_tip(id))
+		var thumb := CardThumb.make(_cached_texture(info["image"]), 104, _title_tip(id))
 		if holder >= 0:
 			thumb.modulate = Color(1, 1, 1, 0.55)
 			thumb.border = TileView.NOBLE_COLOURS[s.players[holder].colour]
 			thumb.caption = s.players[holder].colour
 		titles_grid.add_child(thumb)
+
+
+## Width of a player's dice tray: the right-hand column (what the board leaves
+## of the layout) minus the scrollbar and the panel's margins and border.
+const TRAY_WIDTH := LAYOUT_W - 2 * MARGIN - (5 * TILE + 4 * TILE_GAP) - 12 - 14 - 2 * (8 + 3)
+const DIE_MAX := 68.0
+const DIE_MIN := 36.0
+const SELECTED_LABEL_WIDTH := 110.0
+
+
+## Dice keep full size when they fit, and shrink evenly when a player has many
+## (up to 12: every die recruited plus the d10 and d12).
+static func dice_side(count: int, showing_total: bool) -> float:
+	if count <= 0:
+		return DIE_MAX
+	var room := TRAY_WIDTH - (SELECTED_LABEL_WIDTH if showing_total else 0.0)
+	var gap := 4.0  # HBoxContainer's default separation
+	return clampf(floorf((room - gap * (count - 1)) / count), DIE_MIN, DIE_MAX)
 
 
 func _set_acting(i: int) -> void:
