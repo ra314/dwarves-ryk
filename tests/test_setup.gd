@@ -21,7 +21,8 @@ func test_every_ruling_has_a_flag() -> void:
 			"promoted_die_usable_from", "title_dice_return_with_title", "recruited_die_usable_from",
 			"undo_history", "unlimited_undo_rerolls_are_random", "garrison_works_when_blocked",
 			"title_die_usable_from", "tough_new_enemies_still_wound", "discover_path_only_on_tile",
-			"solo_choose_title_to_return", "minecart_ignores_blocked_mines"]:
+			"solo_choose_title_to_return", "minecart_ignores_blocked_mines",
+			"pending_dice_can_be_promoted"]:
 		assert_true(r.has(key), key)
 
 

@@ -1030,8 +1030,9 @@ func _collect_params(a: Dictionary, pos: Vector2i, make: Callable) -> void:
 			_ask_tile("Click a tile next to %s to swap with it." % MoveCommand._pos_name(pos),
 				func(b): _run(make.call({"a": pos, "b": b})))
 		"upgrade_die":
-			var options := p.dice.filter(func(d): return a["upgrades"].has(d["type"]))
-			_choose("Promote which die?", options.map(func(d): return "%s (showing %d)" % [d["type"], d["value"]]),
+			var options := Rules.promotable_dice(p, a)
+			_choose("Promote which die?", options.map(func(d): return "%s -> %s (%s)" % [d["type"], a["upgrades"][d["type"]],
+					"joins next round" if not d.has("value") else "showing %d" % d["value"]]),
 				func(i): _run(make.call({"die": int(options[i]["id"])})))
 		"gain_title":
 			_claim_title(a, make)

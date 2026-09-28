@@ -176,6 +176,47 @@ func test_master_smith_promotes_at_one() -> void:
 	run(UseActionCommand.new(0, smith, "promote_worker", [ids[0]], {"die": ids[1]}))
 
 
+func test_r27_recruited_d4_can_be_promoted_same_round() -> void:
+	var smith := Vector2i(0, 3)
+	set_tile(smith, "blacksmith")
+	var p := s.players[0]
+	p.resources = 5
+	var d4_before := int(p.reserve["d4"])
+	var ids := set_dice(0, {"d8": [5, 6]})
+	run(UseActionCommand.new(0, LIVING, "recruit_worker", [ids[0]]))
+	var recruited := int(p.pending[0]["id"])
+	run(UseActionCommand.new(0, smith, "promote_worker", [ids[1]], {"die": recruited}))
+	assert_eq(p.pending.map(func(d): return d["type"]), ["d6"])
+	assert_eq(int(p.reserve["d4"]), d4_before, "the recruited d4 went back")
+	assert_eq(p.resources, 0)
+
+
+func test_r27_promoted_die_can_be_promoted_again_same_round() -> void:
+	var smith := Vector2i(0, 3)
+	set_tile(smith, "blacksmith")
+	var p := s.players[0]
+	p.resources = 6
+	var ids := set_dice(0, {"d4": [1], "d8": [5, 5]})
+	run(UseActionCommand.new(0, smith, "promote_worker", [ids[1]], {"die": ids[0]}))
+	run(UseActionCommand.new(0, smith, "promote_worker", [ids[2]], {"die": int(p.pending[0]["id"])}))
+	assert_eq(p.pending.map(func(d): return d["type"]), ["d8"])
+	engine.rules.begin_round(s, [])
+	assert_eq(p.dice.map(func(d): return d["type"]).count("d8"), 3)
+
+
+func test_promotable_dice_skips_sizes_missing_from_reserve() -> void:
+	var smith := Vector2i(0, 3)
+	set_tile(smith, "blacksmith")
+	var p := s.players[0]
+	var promote := engine.data.find_action("blacksmith", true, false, "promote_worker")
+	var ids := set_dice(0, {"d4": [1], "d6": [1], "d8": [5]})
+	p.reserve["d8"] = 0
+	assert_eq(Rules.promotable_dice(p, promote).map(func(d): return int(d["id"])), [ids[0]])
+	p.reserve["d6"] = 0
+	assert_eq(Rules.promotable_dice(p, promote), [])
+	refuse(UseActionCommand.new(0, smith, "promote_worker", [ids[2]]), "No d6 or d8 left")
+
+
 # --- Titles -----------------------------------------------------------------------
 
 func test_claim_master_miner() -> void:

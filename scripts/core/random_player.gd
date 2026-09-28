@@ -73,7 +73,7 @@ static func params_for(s: GameState, p: PlayerState, effect: String, targets: Ar
 		"remove_enemies":
 			return targets.filter(func(t): return s.tile_at(t).enemies > 0).map(func(t): return {"target": t})
 		"upgrade_die":
-			return p.dice.map(func(d): return {"die": int(d["id"])})
+			return (p.dice + p.pending).map(func(d): return {"die": int(d["id"])})
 		"move_one_enemy":
 			var out := []
 			for f in targets:

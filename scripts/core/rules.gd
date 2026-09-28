@@ -359,12 +359,29 @@ func _do_remove_enemies(state: GameState, _p: PlayerState, _o: Vector2i, a: Dict
 	ev.append(event("enemies_removed", {"pos": target, "count": n}))
 
 
+## Dice `p` could promote with action `a` right now: active or pending (R27),
+## of a size that can go up, with the next size still in reserve.
+static func promotable_dice(p: PlayerState, a: Dictionary) -> Array:
+	return (p.dice + p.pending).filter(func(d):
+		return a["upgrades"].has(d["type"]) and int(p.reserve.get(a["upgrades"][d["type"]], 0)) > 0)
+
+
 func _check_upgrade_die(_s: GameState, p: PlayerState, _o: Vector2i, a: Dictionary, params: Dictionary) -> String:
 	if not params.has("die"):
+		if promotable_dice(p, a).is_empty():
+			var sizes := []
+			for t in a["upgrades"]:
+				if (p.dice + p.pending).any(func(d): return d["type"] == t):
+					sizes.append(a["upgrades"][t])
+			if sizes.is_empty():
+				return "No die that can be promoted."
+			return "No %s left in your reserve." % " or ".join(sizes)
 		return "Choose a die to promote."
 	var d := p.die_by_id(int(params["die"]))
 	if d.is_empty():
-		return "That die isn't in your active pool."
+		d = p.pending_by_id(int(params["die"]))  # R27
+	if d.is_empty():
+		return "That die isn't yours."
 	if not a["upgrades"].has(d["type"]):
 		return "A %s can't be promoted." % d["type"]
 	var new_type: String = a["upgrades"][d["type"]]
@@ -374,10 +391,15 @@ func _check_upgrade_die(_s: GameState, p: PlayerState, _o: Vector2i, a: Dictiona
 
 
 func _do_upgrade_die(_s: GameState, p: PlayerState, _o: Vector2i, a: Dictionary, params: Dictionary, ev: Array) -> void:
-	var d := p.die_by_id(int(params["die"]))
+	var id := int(params["die"])
+	var d := p.die_by_id(id)
+	if d.is_empty():
+		d = p.pending_by_id(id)  # R27: recruited or promoted earlier this round
+		p.remove_pending(id)
+	else:
+		p.remove_die(id)
 	var old_type: String = d["type"]
 	var new_type: String = a["upgrades"][old_type]
-	p.remove_die(int(d["id"]))
 	p.reserve[old_type] = int(p.reserve.get(old_type, 0)) + 1
 	p.reserve[new_type] -= 1
 	p.add_pending(new_type)  # R14: usable from next round

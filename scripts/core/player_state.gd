@@ -67,6 +67,21 @@ func die_by_id(die_id: int) -> Dictionary:
 	return {}
 
 
+## A die waiting to join the active pool next round, or {} if there's none.
+func pending_by_id(die_id: int) -> Dictionary:
+	for d in pending:
+		if int(d["id"]) == die_id:
+			return d
+	return {}
+
+
+func remove_pending(die_id: int) -> void:
+	for i in pending.size():
+		if int(pending[i]["id"]) == die_id:
+			pending.remove_at(i)
+			return
+
+
 func remove_die(die_id: int) -> void:
 	for i in dice.size():
 		if int(dice[i]["id"]) == die_id:

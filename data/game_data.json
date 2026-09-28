@@ -717,7 +717,8 @@
     "tough_new_enemies_still_wound": true,
     "discover_path_only_on_tile": true,
     "solo_choose_title_to_return": true,
-    "minecart_ignores_blocked_mines": true
+    "minecart_ignores_blocked_mines": true,
+    "pending_dice_can_be_promoted": true
   },
   "settings": {
     "unlimited_undo": false,

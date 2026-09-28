@@ -101,6 +101,39 @@ func test_choice_popup_runs_chosen_option() -> void:
 	assert_eq(main.engine.state.players[0].pending.map(func(d): return d["type"]), ["d8"])
 
 
+func _choice_texts() -> Array:
+	var out := []
+	for i in main.choice_menu.item_count:
+		if not main.choice_menu.is_item_separator(i):
+			out.append(main.choice_menu.get_item_text(i))
+	return out
+
+
+func test_promote_offers_only_dice_with_a_bigger_size_in_reserve() -> void:
+	var s: GameState = main.engine.state
+	var smith := Vector2i(0, 3)
+	s.tile_at(smith).id = "blacksmith"
+	s.tile_at(smith).revealed = true
+	var p := s.players[0]
+	p.dice.clear()
+	var spend := p.add_die("d8")
+	spend["value"] = 5
+	p.add_die("d4")["value"] = 1
+	p.add_die("d6")["value"] = 1
+	p.add_pending("d4")
+	p.reserve["d8"] = 0
+	main.selected = [int(spend["id"])]
+	main._on_tile_clicked(smith)
+	await _press("Promote Worker")
+	assert_eq(_choice_texts(), ["d4 -> d6 (showing 1)", "d4 -> d6 (joins next round)"])
+	main.choice_menu.hide()
+	# With no d6 or d8 left there's nothing to choose, so the entry says why.
+	p.reserve["d6"] = 0
+	main.selected = [int(spend["id"])]
+	main._on_tile_clicked(smith)
+	assert_true(_menu_texts().any(func(t): return t.begins_with("Promote Worker") and t.ends_with("No d6 or d8 left in your reserve.")))
+
+
 func _menu_texts() -> Array:
 	var out := []
 	for i in main.menu.item_count:

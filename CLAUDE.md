@@ -75,7 +75,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 
 ## Status
 
-- Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R26); game data transcribed from the cards.
+- Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R27); game data transcribed from the cards.
 - Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar. The layout is a fixed 1920×1080 (`LAYOUT_W`/`LAYOUT_H` in `main.gd`, matching `project.godot`) that scales to the window, keeping its aspect (`canvas_items` + `keep` stretch in `project.godot`); F11 or the top-bar button toggles fullscreen. A game clock (`elapsed` in `main.gd`) counts up from New game, pauses while watching a replay, stops at game over, and is saved in `engine.meta.elapsed`.
 - Done: every game records itself to `user://replays/*.dwreplay` for sharing; Files → Watch (or Open a replay from file…) opens one in a viewer.
 - Next: rest of milestone 7 (sound, a settings screen, more save slots). The enemy turn replay is done.

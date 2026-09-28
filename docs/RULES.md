@@ -138,7 +138,7 @@ Players can't act during the Enemy Phase. **(R6)**
 - This can happen during the Dwarf Phase, e.g. from an expedition. Pause all player actions, resolve the surge, then carry on.
 
 ### 5.12 Upgrading and recruiting dice
-- *Promote Worker* (Blacksmith): pay 3 resources and swap a die for the next size up (d4→d6, d6→d8). The old die goes to your reserve. The new die comes from your reserve and joins your active pool from the **next** round. You need a die of the higher size in your reserve. **(R14)**
+- *Promote Worker* (Blacksmith): pay 3 resources and swap a die for the next size up (d4→d6, d6→d8). The old die goes to your reserve. The new die comes from your reserve and joins your active pool from the **next** round. You need a die of the higher size in your reserve. **(R14)** A die recruited or promoted earlier the same round can be promoted too, before it joins your pool; promoting doesn't use the die. **(R27)**
 - *Recruit Worker* (Living Quarters): pay 2 resources and move a d4 from your reserve to your active pool. It can be used from the **next** round. **(R20)**
 
 ---
@@ -243,3 +243,4 @@ Decisions made where the rulebook is unclear. The matching flags are in `game_da
 | R24 | *Discover the Path* only works while standing on that Empty Halls. |
 | R25 | Solo: at the 2-title limit you choose which title to return. |
 | R26 | The minecart works even if either Mine is blocked. |
+| R27 | Promote Worker can take a die recruited or promoted earlier the same round (still waiting to join the pool). |
