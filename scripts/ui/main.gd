@@ -909,9 +909,13 @@ func _on_tile_clicked(pos: Vector2i) -> void:
 				_menu_item("Noble Combat (single die 6+)", NobleCombatCommand.new(acting, selected[0], pos))
 			else:
 				_add_entry("Noble Combat (single die 6+) — select exactly one die", true, func(): pass)
+
+	# Title abilities reach as far as their "range" in the data says: Personal
+	# Guard and Bodyguard your tile or a neighbour, Architect (no range) anywhere.
+	if p.on_board:
 		for title in p.titles:
 			for a in engine.data.title(title)["abilities"]:
-				if a["type"] == "action":
+				if a["type"] == "action" and (not a.has("range") or GameState.is_own_or_adjacent(p.pos, pos)):
 					_title_item(pos, a)
 
 	if menu.item_count <= 1:

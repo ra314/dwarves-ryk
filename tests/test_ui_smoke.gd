@@ -234,3 +234,34 @@ func test_every_die_fits_in_the_tray() -> void:
 		assert_not_null(tray)
 		assert_eq(tray.get_children().filter(func(c): return c is DiceView).size(), 12)
 		assert_lte(tray.get_combined_minimum_size().x, float(main.TRAY_WIDTH), "selected total shown: %s" % showing_total)
+
+
+func test_architect_can_swap_tiles_anywhere_on_the_map() -> void:
+	var s: GameState = main.engine.state
+	var p := s.players[0]  # on the Hearth, B4
+	p.titles.append("master_smith")
+	var d = p.dice[0]
+	d["value"] = 6
+	main.selected = [int(d["id"])]
+	main._refresh()
+	var far := Vector2i(4, 0)   # E1, the City Gate: nowhere near the noble
+	var next := Vector2i(3, 0)  # D1
+	var far_id := s.tile_at(far).id
+	var next_id := s.tile_at(next).id
+	main._on_tile_clicked(far)
+	await _press("Architect")
+	assert_true(main.target_step.is_valid(), "asks for the second tile")
+	main._on_tile_clicked(next)
+	assert_eq(main.engine.state.tile_at(far).id, next_id)
+	assert_eq(main.engine.state.tile_at(next).id, far_id)
+
+
+func test_ranged_title_abilities_stay_in_range() -> void:
+	var s: GameState = main.engine.state
+	s.players[0].titles.append("master_of_the_guard")
+	s.tile_at(Vector2i(4, 0)).enemies = 1
+	s.tile_at(Vector2i(1, 2)).enemies = 1
+	main._on_tile_clicked(Vector2i(4, 0))  # far away
+	assert_false(_menu_texts().any(func(t): return t.begins_with("Personal Guard")))
+	main._on_tile_clicked(Vector2i(1, 2))  # next to the noble
+	assert_true(_menu_texts().any(func(t): return t.begins_with("Personal Guard")))
