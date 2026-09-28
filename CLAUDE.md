@@ -33,7 +33,7 @@ These are the owner's standing preferences. Follow them in every session.
 - **End of session:**
   - update `docs/ROADMAP.md` (tick off finished items, add new ideas and open questions);
   - add anything that cost time to `docs/LESSONS.md`;
-  - keep **Where things are** below accurate for any new files or systems.
+  - keep **Where things are** below accurate: every new file gets a line there.
 
 Keep this file short and current. It is loaded into every session, so remove anything that's out of date rather than adding to it.
 
@@ -101,19 +101,77 @@ Milestones 1–6 are done, and milestone 7 is partly done. See `docs/ROADMAP.md`
 
 ### Where things are
 
-- Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`.
-- Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar.
-- Layout: a fixed 1920×1080 (`LAYOUT_W`/`LAYOUT_H` in `main.gd`, matching `project.godot`) that scales to the window and keeps its aspect (`canvas_items` + `keep` stretch). F11 or the top-bar button toggles fullscreen.
-- Game clock: `elapsed` in `main.gd`. It counts up from New game, pauses while a replay is being watched, stops at game over, and is saved in `engine.meta.elapsed`.
+Every script, test and tool is listed here. When you add, rename or delete one, update this list: `tests/test_code_map.gd` fails if a file is missing from it.
 
-- `rules.gd` holds the effect handlers (`effects` maps effect id → check/apply), combat, wounds, surges and the Enemy Phase. Commands in `commands/` validate the player-side parts and call into it.
-- `Rules.action_terms(player, action, tile)` gives an action's real minimum and cost for a player after titles (Messenger, Master Smith, …), with notes. Commands validate against it and every UI text (menus, hovers) is built from it; don't show a printed `min`/`cost` straight from the data. `Rules.movement_parts` does the same for movement.
-- `engine.gd` runs the Enemy Phase when the last player is done. Any command during which `Rules.revealed` gets set is stored as a checkpoint in `undo_history.gd`.
-- `random_player.gd` lists every legal command; the fuzz test and `tools/debug_game.gd` use it.
-- UI: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards.
-- UI pieces in `scripts/ui/`: `tile_view.gd` (board spaces), `dice_view.gd` (drawn dice, also blank mini dice for reserves), `track_view.gd` (turn-track art with the marker; cell positions are measured from `turn_track.jpg`), `card_thumb.gd` (title cards, full size on hover), `stat_chip.gd` + `icon_glyph.gd` (icon + value chips; resources and moves have drawn icons since the art has none). `assets/tokens/turn_marker.png` is the publisher logo, so the marker is drawn instead.
-- `replay_log.gd` (core) records games: JSON Lines of a header, the setup state, then per command its label, events and the state after it, plus `undo` lines. Storing states (not just commands) means replays never re-run the rules, so old replays keep working when the engine changes; keep `GameState.from_dict` able to read old saves. The file is created at the first action, so untouched games leave nothing. The save file's `meta.replay` links a save to its replay so loading carries on recording. `ui/replay_viewer.gd` is the player bar; while watching, `main.gd` swaps in each frame's state and blocks commands, then restores the live game and its undo history on exit. UI tests set `main.recorder.dir` to a scratch folder.
-- `enemy_turn_animator.gd` replays the Enemy Phase from its events on a copy of the board taken before the command (banner per step, flying enemy tokens, Skip/Space/Esc). The engine state is already final; the screen redraws from it afterwards. `tests/test_enemy_replay.gd` checks the replayed board ends equal to the real one, so a new event type that changes the board needs a case in `EnemyTurnAnimator._apply`. The toggle and the animation speed (0.25×–4×) are saved in `user://settings.cfg`. Durations in `enemy_turn_animator.gd` and `replay_viewer.gd` are written at 1× and must go through `main.scaled()`; UI tests set `main.settings_path` to a scratch file.
+**Engine (`scripts/core/`, no Node dependencies)**
+
+- `game_data.gd`: loads `game_data.json` once and looks things up (`tile`, `find_action`, …). `GameData._ints` turns JSON floats back into ints.
+- `game_state.gd`: all mutable state: the grid, players, turn marker, round and phase. It holds `tile_state.gd` (one grid space: tile id, which side is up, tokens) and `player_state.gd` (the Noble's position, `dice` (active), `pending` (joining next round), `reserve` (counts by type), resources, titles). `to_dict`/`from_dict` give deep copies and save files; keep `from_dict` able to read old saves and replays.
+- `rules.gd`: the effect handlers (`effects` maps effect id → check/apply), combat, wounds, surges and the Enemy Phase.
+  - `Rules.action_terms(player, action, tile)` gives an action's real minimum and cost for a player after titles (Messenger, Master Smith, …), with notes. Commands validate against it and every UI text (menus, hovers) is built from it. Don't show a printed `min`/`cost` straight from the data.
+  - `Rules.movement_parts` does the same for movement. `Rules.promotable_dice` lists the dice Promote Worker can take.
+- `engine.gd`: runs commands, undo and the Enemy Phase (when the last player is done). Any command during which `Rules.revealed` gets set is stored as a checkpoint in `undo_history.gd` (state snapshots and checkpoints).
+- `random_player.gd`: lists every legal command. The fuzz test and `tools/debug_game.gd` use it, so new kinds of move belong here too.
+- `debug_view.gd`: a plain-text dump of a state.
+- `replay_log.gd`: records games to `.dwreplay` files.
+  - The format is JSON Lines: a header, the setup state, then for each command its label, events and the state after it, plus `undo` lines.
+  - Storing states (not just commands) means replays never re-run the rules, so old replays keep working when the engine changes.
+  - The file is created at the first action, so untouched games leave nothing.
+  - The save file's `meta.replay` links a save to its replay, so a loaded game carries on recording.
+
+**Commands (`scripts/core/commands/`)**: each validates the player-side parts and calls into `rules.gd`.
+
+- `command.gd`: the base class (`can_apply`, `apply`, `describe`).
+- `move_command.gd`: move the Noble, optionally carrying warriors or riding the minecart.
+- `use_action_command.gd`: spend dice on a tile action. Its `params` depend on the effect.
+- `title_action_command.gd`: a held title's action (Personal Guard, Architect, Bodyguard).
+- `noble_combat_command.gd`: remove an enemy with a single die of 6 or more.
+- `mark_done_command.gd`: finish the Dwarf Phase. The last one done triggers the Enemy Phase.
+
+**UI (`scripts/ui/`, scene `scenes/main.tscn`)**
+
+- `main.gd`: the game screen.
+  - How it's used: pick a player by clicking their name or a die in their tray, select dice, then click a tile for a menu of moves and actions. Actions that need a target ask for a tile click afterwards; choices after the menu (e.g. which die to promote) use `choice_menu`.
+  - Top bar: save/load (one slot, `user://save.json`), the unlimited-undo toggle, Files, fullscreen (also F11).
+  - Layout: a fixed 1920×1080 (`LAYOUT_W`/`LAYOUT_H`, matching `project.godot`) that scales to the window and keeps its aspect (`canvas_items` + `keep` stretch).
+  - Game clock: `elapsed`. It counts up from New game, pauses during a replay, stops at game over, and is saved in `engine.meta.elapsed`.
+- `tile_view.gd`: a board space.
+- `dice_view.gd`: drawn dice, and blank mini dice for reserves.
+- `track_view.gd`: the turn-track art with a drawn marker (`assets/tokens/turn_marker.png` is the publisher logo). Cell positions are measured from `turn_track.jpg`.
+- `card_thumb.gd`: title cards.
+- `hover_card.gd`: tooltip content (card image plus text) for tiles and titles.
+- `stat_chip.gd` + `icon_glyph.gd`: icon + value chips. Resources and moves have drawn icons, since the art has none.
+- `enemy_turn_animator.gd`: replays the Enemy Phase from its events on a copy of the board taken before the command. It shows a banner per step and flying enemy tokens, and Skip, Space or Esc ends it.
+  - The engine state is already final; the screen redraws from it afterwards.
+  - A new event type that changes the board needs a case in `EnemyTurnAnimator._apply`.
+  - The toggle and the speed (0.25×–4×) are saved in `user://settings.cfg`.
+  - Durations here and in `replay_viewer.gd` are written at 1× and must go through `main.scaled()`.
+- `replay_viewer.gd`: the replay player bar. While a replay is watched, `main.gd` swaps in each frame's state and blocks commands, then restores the live game and its undo history on exit.
+- `files_window.gd` and `file_bridge.gd`: see **Web build** below.
+
+**Tests (`tests/`, GUT)**: every ruling needs a `test_r#_...` test.
+
+- `engine_test_base.gd`: shared helpers (`set_dice`, `set_tile`, `place`, `run`, `refuse`) and fixed positions (`HEARTH`, `LIVING`, …).
+- `test_setup.gd`: data loading, setup, and that every ruling has a flag.
+- `test_game_data_types.gd`: numbers from JSON load as ints.
+- `test_dwarf_phase.gd`: dice, movement, resources and the simple actions.
+- `test_enemies.gd`: the Enemy Phase, combat, wounds, blocking and surges.
+- `test_actions.gd`: Expedition, the other tile actions, titles and winning.
+- `test_undo.gd`: snapshots, checkpoints and unlimited undo.
+- `test_fuzz.gd`: whole random games, checking rule invariants after every command.
+- `test_replay_log.gd`: recording and reading replays.
+- `test_enemy_replay.gd`: the animated enemy turn ends on the real board.
+- `test_ui_smoke.gd`: the main scene: menus, choices, hover text.
+- `test_files_window.gd`: the Files window.
+- `test_timer.gd`: the game clock.
+- `test_code_map.gd`: this list names every script, test and tool.
+- UI tests point `main.recorder.dir` and `main.settings_path` at scratch locations.
+
+**Tools (`tools/`, not in the web build)**
+
+- `debug_game.gd`: a text-only random game (see below).
+- `fetch_web_templates.py`: installs only Godot's web export templates.
+- `download_assets.py` + `Dwarves_mod_links.txt`, `rename_assets.py`: fetch the art again (see the last section).
 
 ## Running and testing
 
