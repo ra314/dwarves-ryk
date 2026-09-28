@@ -61,6 +61,10 @@ var fx_layer: Control
 var blocker: Control
 var banner: PanelContainer
 var banner_label: Label
+## Game clock: counts up from New game, pauses while watching a replay and
+## stops when the game ends. Saved with the game in engine.meta.
+var elapsed := 0.0
+var timer_label: Label
 var menu: PopupMenu
 ## Follow-up picks (which die, which title) get their own popup: Godot hides a
 ## PopupMenu after running the picked item's action, so reusing `menu` would
@@ -173,6 +177,13 @@ func _build_ui() -> void:
 	var files := _button("Files", func(): files_window.open())
 	files.tooltip_text = "Saves and replays: download them, load them from a file, watch or delete replays."
 	top.add_child(files)
+	timer_label = _label("0:00")
+	timer_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	timer_label.add_theme_color_override("font_color", Color("e0c080"))
+	timer_label.tooltip_text = "Time played this game. Resets on New game, pauses while watching a replay."
+	timer_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	top.add_child(timer_label)
 
 	replay_bar = ReplayViewer.new(self)
 	replay_bar.visible = false
@@ -333,6 +344,8 @@ func _build_board() -> void:
 
 func _new_game() -> void:
 	var ev := engine.new_game(int(players_spin.value))
+	elapsed = 0.0
+	_update_timer()
 	acting = 0
 	selected.clear()
 	_cancel_target()
@@ -342,6 +355,28 @@ func _new_game() -> void:
 	_log_events(ev)
 	_start_recording()
 	_refresh()
+
+
+func _process(delta: float) -> void:
+	if replay_mode or engine.state == null or engine.state.is_over():
+		return
+	var before := int(elapsed)
+	elapsed += delta
+	if int(elapsed) != before:
+		_update_timer()
+
+
+func _update_timer() -> void:
+	if timer_label:
+		timer_label.text = format_time(elapsed)
+
+
+## 0:05, 12:34, 1:02:03.
+static func format_time(seconds: float) -> String:
+	var t := int(seconds)
+	if t >= 3600:
+		return "%d:%02d:%02d" % [t / 3600, (t / 60) % 60, t % 60]
+	return "%d:%02d" % [t / 60, t % 60]
 
 
 func _start_recording() -> void:
@@ -366,6 +401,7 @@ func _save() -> void:
 	if replay_mode:
 		return
 	engine.meta["replay"] = recorder.path
+	engine.meta["elapsed"] = elapsed
 	var err := engine.save_to(SAVE_PATH)
 	_log("Saved." if err == OK else "[color=red]Save failed (%s).[/color]" % error_string(err))
 
@@ -379,6 +415,8 @@ func _load() -> void:
 		return
 	unlimited_check.set_pressed_no_signal(engine.unlimited_undo)
 	players_spin.value = engine.state.num_players
+	elapsed = float(engine.meta.get("elapsed", 0.0))
+	_update_timer()
 	acting = 0
 	selected.clear()
 	_build_board()
