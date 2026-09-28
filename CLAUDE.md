@@ -12,8 +12,30 @@ Engine: **Godot 4, GDScript.**
 | `data/game_data.json` | Every number and piece of card text: tiles, actions (dice minimum, resource cost, effect id), titles, turn track, setup grid, limits, and `rule_decisions` flags matching the R# rulings. |
 | `assets/` | Images for tiles, title cards, tokens and the turn track. Paths in `game_data.json` are relative to `res://assets/`. |
 | `assets/rulebook.pdf` | The original rulebook, for checking anything the spec doesn't cover. |
+| `docs/ROADMAP.md` | What's done, what's next, ideas and open questions. |
+| `docs/LESSONS.md` | Mistakes already made (Godot quirks, testing traps). Read it before writing GDScript here. |
 
-When the spec and the rulebook disagree, the spec wins: its rulings were decided deliberately by the owner. If something is covered by neither, ask the owner instead of guessing, then add the answer to the Rulings table in `docs/RULES.md` and a flag under `rule_decisions` in `game_data.json`.
+When the spec and the rulebook disagree, the spec wins: its rulings were decided deliberately by the owner. If something is covered by neither, ask the owner instead of guessing, then record the answer with the `add-ruling` skill.
+
+## How we work
+
+These are the owner's standing preferences. Follow them in every session.
+
+- **Answer questions before carrying on with work.** If the owner asks something in the middle of a task, answer it first.
+- **"Investigate" means don't change anything.** When asked only to investigate or explain, report back without editing files.
+- **Rules questions go to the owner.** Never make up a ruling. Once the owner decides, follow the `add-ruling` skill (`.claude/skills/add-ruling/SKILL.md`).
+- **Small, finished commits.** Each change ends with:
+  - all tests passing;
+  - a new test that fails on the old behaviour;
+  - docs updated;
+  - a commit with a plain-English message saying what changed for the player;
+  - a push. Every push to the default branch redeploys the website.
+- **End of session:**
+  - update `docs/ROADMAP.md` (tick off finished items, add new ideas and open questions);
+  - add anything that cost time to `docs/LESSONS.md`;
+  - keep **Where things are** below accurate for any new files or systems.
+
+Keep this file short and current. It is loaded into every session, so remove anything that's out of date rather than adding to it.
 
 ## Game in one paragraph
 
@@ -57,7 +79,7 @@ Key decisions:
 
 ## Build plan
 
-Work in this order. Each milestone should end with passing tests.
+The original plan. Milestones 1–6 are done; progress now lives in `docs/ROADMAP.md`. Work was done in this order. Each milestone should end with passing tests.
 
 1. **Data and setup.** Load `game_data.json`. Build a `GameState` for 1–6 players following RULES.md §3: grid, shuffled ruins, dice pools, resources, turn marker.
 2. **Dwarf Phase basics.** Rolling, spending dice, worker assistance, movement, resources, and the simple actions (Dig, Train Warrior, Recruit Worker).
@@ -75,12 +97,14 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 
 ## Status
 
-- Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R27); game data transcribed from the cards.
-- Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar. The layout is a fixed 1920×1080 (`LAYOUT_W`/`LAYOUT_H` in `main.gd`, matching `project.godot`) that scales to the window, keeping its aspect (`canvas_items` + `keep` stretch in `project.godot`); F11 or the top-bar button toggles fullscreen. A game clock (`elapsed` in `main.gd`) counts up from New game, pauses while watching a replay, stops at game over, and is saved in `engine.meta.elapsed`.
-- Done: every game records itself to `user://replays/*.dwreplay` for sharing; Files → Watch (or Open a replay from file…) opens one in a viewer.
-- Next: rest of milestone 7 (sound, a settings screen, more save slots). The enemy turn replay is done.
+Milestones 1–6 are done, and milestone 7 is partly done. See `docs/ROADMAP.md` for what's done and what's next, and `git log` for the history.
 
 ### Where things are
+
+- Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`.
+- Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar.
+- Layout: a fixed 1920×1080 (`LAYOUT_W`/`LAYOUT_H` in `main.gd`, matching `project.godot`) that scales to the window and keeps its aspect (`canvas_items` + `keep` stretch). F11 or the top-bar button toggles fullscreen.
+- Game clock: `elapsed` in `main.gd`. It counts up from New game, pauses while a replay is being watched, stops at game over, and is saved in `engine.meta.elapsed`.
 
 - `rules.gd` holds the effect handlers (`effects` maps effect id → check/apply), combat, wounds, surges and the Enemy Phase. Commands in `commands/` validate the player-side parts and call into it.
 - `Rules.action_terms(player, action, tile)` gives an action's real minimum and cost for a player after titles (Messenger, Master Smith, …), with notes. Commands validate against it and every UI text (menus, hovers) is built from it; don't show a printed `min`/`cost` straight from the data. `Rules.movement_parts` does the same for movement.

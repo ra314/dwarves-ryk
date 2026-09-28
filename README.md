@@ -65,4 +65,4 @@ then serve `build/web` with any static file server, e.g. `python3 -m http.server
 | `tests/` | Engine, UI and replay tests, including full random games checked for rule invariants. |
 | `assets/` | Art from the Tabletop Simulator mod of the game. |
 
-Notes for anyone working on the code are in [`CLAUDE.md`](CLAUDE.md).
+Notes for anyone working on the code, human or AI, are in [`CLAUDE.md`](CLAUDE.md). Plans and ideas are in [`docs/ROADMAP.md`](docs/ROADMAP.md).
