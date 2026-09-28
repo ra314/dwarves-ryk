@@ -77,7 +77,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 
 - Done: assets extracted from the Tabletop Simulator mod and renamed; rules spec written; all rulebook gaps decided (R1–R26); game data transcribed from the cards.
 - Done: milestones 1–6. Engine in `scripts/core/`, plain UI in `scripts/ui/` + `scenes/main.tscn`. Save/load (one slot, `user://save.json`) and the unlimited-undo toggle are in the top bar. The layout is a fixed 1600×960 that scales to the window, keeping its aspect (`canvas_items` + `keep` stretch in `project.godot`); F11 or the top-bar button toggles fullscreen.
-- Done: every game records itself to `user://replays/*.dwreplay` for sharing; Replays → Watch a replay… opens one in a viewer.
+- Done: every game records itself to `user://replays/*.dwreplay` for sharing; Files → Watch (or Open a replay from file…) opens one in a viewer.
 - Next: rest of milestone 7 (sound, a settings screen, more save slots). The enemy turn replay is done.
 
 ### Where things are
@@ -103,7 +103,7 @@ Use a Godot unit-test addon (GUT or gdUnit4). Test the engine directly with a se
 - The preset is built **without threads**, because Pages can't send the cross-origin-isolation headers threads need. Tests, tools, docs, GUT and unused art are excluded.
 - Art is imported as lossy WebP with size limits (tiles and titles 640 px, tokens 128, components 1024) to keep the download small. Code that uses image pixel coordinates must scale by the texture's real size (see `TrackView.source_rect`).
 - In the browser there are no system fonts, so UI text must stay within what the default font has (Latin, `·`, `×`, `—`, `…`): no ▶ ✓ ☠ or arrows.
-- `scripts/ui/web_replays.gd` replaces the desktop replay file dialog and folder with a browser file picker and a download, and opens `?replay=<url>` links. `.dwreplay` files committed to `replays/` are copied into the site so they can be shared as `?replay=replays/<file>.dwreplay`.
+- The **Files** window (`scripts/ui/files_window.gd`) is the one place to move saves and replays in and out: save-and-download, load a game from a file, and every stored replay with Watch/Download/Delete. `scripts/ui/file_bridge.gd` does the moving: the browser's file picker and downloads on the web, Godot file dialogs on desktop, and `?replay=<url>` links. Opened replays are copied to `user://replays/opened`. In the browser everything in `user://` lives in the site's IndexedDB, under a folder named after the project. `.dwreplay` files committed to `replays/` are copied into the site so they can be shared as `?replay=replays/<file>.dwreplay`.
 - Local build: `python3 tools/fetch_web_templates.py 4.3`, then `godot --headless --export-release "Web" build/web/index.html`, and serve `build/web` with any static server.
 
 ## Getting the assets on a new machine

@@ -81,6 +81,46 @@ func _append(entry: Dictionary) -> void:
 	f.store_line(JSON.stringify(entry))
 
 
+## A quick look at a replay without loading its states: who played, when, and
+## how many steps it has after undos. {"path", "players", "started", "steps", "error"}.
+static func summary(file: String) -> Dictionary:
+	var out := {"path": file, "players": [], "started": "", "steps": 0, "error": ""}
+	var f := FileAccess.open(file, FileAccess.READ)
+	if f == null:
+		out["error"] = "Can't open"
+		return out
+	var steps := 0
+	# JSON.stringify sorts keys, so the type marker isn't at the start of a line.
+	while not f.eof_reached():
+		var line := f.get_line()
+		if line.contains('"t":"step"'):
+			steps += 1
+		elif line.contains('"t":"undo"'):
+			steps = maxi(0, steps - 1)
+		elif line.contains('"t":"header"'):
+			var h = JSON.parse_string(line)
+			if h is Dictionary:
+				out["players"] = h.get("players", [])
+				out["started"] = h.get("started", "")
+	out["steps"] = steps
+	return out
+
+
+## Every .dwreplay in the given folders, newest first.
+static func list(dirs: Array) -> Array[String]:
+	var files: Array[String] = []
+	for d in dirs:
+		var da := DirAccess.open(d)
+		if da == null:
+			continue
+		for name in da.get_files():
+			if name.get_extension() == EXTENSION:
+				files.append("%s/%s" % [d, name])
+	# File names start with the date and time, so name order is time order.
+	files.sort_custom(func(a, b): return a.get_file() > b.get_file())
+	return files
+
+
 ## Reads a replay into frames, with undone steps removed. Frame 0 is the setup.
 ## Each frame: {"label": String, "player": int, "events": Array, "state": GameState}.
 ## Returns {"frames": [...], "players": [...], "error": ""}.

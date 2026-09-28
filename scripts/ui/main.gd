@@ -35,7 +35,8 @@ var recorder := ReplayLog.new()
 ## Watching a replay: the live game is set aside and restored on exit.
 var replay_mode := false
 var replay_bar: ReplayViewer
-var replay_dialog: FileDialog
+var file_bridge: FileBridge
+var files_window: FilesWindow
 var _stashed_state: GameState
 var _stashed_history: Array[Dictionary] = []
 var undo_row: HBoxContainer
@@ -73,34 +74,54 @@ func _ready() -> void:
 	_build_ui()
 	_new_game()
 	# In the browser, ?replay=<url> opens a shared replay straight away.
-	if OS.has_feature("web"):
-		WebReplays.open_from_url_param(_on_web_replay)
+	file_bridge.open_from_url_param(_on_replay_opened)
 
 
-func _on_replays_menu(id: int) -> void:
-	match id:
-		0:  # Watch a replay…
-			if OS.has_feature("web"):
-				WebReplays.pick_file(_on_web_replay)
-			else:
-				replay_dialog.current_dir = ProjectSettings.globalize_path(ReplayLog.DIR)
-				replay_dialog.popup_centered_ratio(0.7)
-		1:  # Open the replays folder (desktop)
-			DirAccess.make_dir_recursive_absolute(ReplayLog.DIR)
-			OS.shell_open(ProjectSettings.globalize_path(ReplayLog.DIR))
-		2:  # Download this game's replay (web)
-			if recorder.path == "":
-				_error("Nothing to download yet: take an action first.")
-			else:
-				WebReplays.download(recorder.path)
+# --- Files ------------------------------------------------------------------------
+
+## Saves to the slot, then hands the player a copy of the file.
+func download_game() -> void:
+	if replay_mode:
+		_error("Exit the replay first.")
+		return
+	_save()
+	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "-").replace(" ", "_")
+	file_bridge.export_file(SAVE_PATH, "dwarves_save_%s.json" % stamp)
 
 
-## A replay picked or fetched in the browser: keep a copy in user:// and watch it.
-func _on_web_replay(file_name: String, text: String) -> void:
-	var path := WebReplays.store(file_name, text)
+func load_game_from_file() -> void:
+	file_bridge.pick("Load a game", "json", _on_save_file_loaded)
+
+
+## A save file from outside: checked before it replaces the save slot.
+func _on_save_file_loaded(file_name: String, text: String) -> void:
+	var d = JSON.parse_string(text)
+	if not (d is Dictionary) or not d.has("state"):
+		_error("%s isn't a Dwarves save file." % file_name)
+		return
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	f.store_string(text)
+	f = null
+	files_window.hide()
+	_load()
+
+
+func open_replay_file() -> void:
+	file_bridge.pick("Watch a replay", ReplayLog.EXTENSION, _on_replay_opened)
+
+
+func open_replays_folder() -> void:
+	DirAccess.make_dir_recursive_absolute(recorder.dir)
+	OS.shell_open(ProjectSettings.globalize_path(recorder.dir))
+
+
+## A replay picked from a file or fetched from a ?replay= link: keep a copy and watch it.
+func _on_replay_opened(file_name: String, text: String) -> void:
+	var path := FileBridge.store_opened(file_name, text)
 	if path == "":
 		_error("Couldn't open %s." % file_name)
 		return
+	files_window.hide()
 	enter_replay(path)
 
 
@@ -145,17 +166,9 @@ func _build_ui() -> void:
 	top.add_child(_button("Save", _save))
 	top.add_child(_button("Load", _load))
 	top.add_child(_button("Fullscreen (F11)", _toggle_fullscreen))
-	var replays := MenuButton.new()
-	replays.text = "Replays"
-	replays.flat = false
-	replays.tooltip_text = "Every game is recorded. Share a .%s file from the replays folder;\nanyone with the game can watch it here." % ReplayLog.EXTENSION
-	replays.get_popup().add_item("Watch a replay…", 0)
-	if OS.has_feature("web"):
-		replays.get_popup().add_item("Download this game's replay", 2)
-	else:
-		replays.get_popup().add_item("Open the replays folder", 1)
-	replays.get_popup().id_pressed.connect(_on_replays_menu)
-	top.add_child(replays)
+	var files := _button("Files", func(): files_window.open())
+	files.tooltip_text = "Saves and replays: download them, load them from a file, watch or delete replays."
+	top.add_child(files)
 
 	replay_bar = ReplayViewer.new(self)
 	replay_bar.visible = false
@@ -250,13 +263,10 @@ func _build_ui() -> void:
 	confirm = ConfirmationDialog.new()
 	confirm.confirmed.connect(func(): confirm_action.call())
 	add_child(confirm)
-	replay_dialog = FileDialog.new()
-	replay_dialog.title = "Watch a replay"
-	replay_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
-	replay_dialog.access = FileDialog.ACCESS_FILESYSTEM
-	replay_dialog.filters = PackedStringArray(["*.%s ; Dwarves replays" % ReplayLog.EXTENSION])
-	replay_dialog.file_selected.connect(enter_replay)
-	add_child(replay_dialog)
+	file_bridge = FileBridge.new()
+	add_child(file_bridge)
+	files_window = FilesWindow.new(self)
+	add_child(files_window)
 
 	# Enemy turn replay: flying tokens, an input blocker with Skip, and a banner.
 	fx_layer = Control.new()
